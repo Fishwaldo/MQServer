@@ -35,13 +35,10 @@
 #include "list.h"
 #include "packet.h"
 #include "xds.h"
+#include "buffer.h"
 
 
 int close_fd (mqp *mqplib, mqpacket * mqp);
-int buffer_add (mqpacket * mqp, void *data, size_t datlen);
-void buffer_del (mqpacket * mqp, size_t drainlen);
-
-
 
 myeng standeng[] = {
 	{ XDS_ENCODE, ENG_TYPE_XDR, xdr_encode_uint32, "uint32" },
@@ -161,17 +158,16 @@ pck_new_connection (mqp *mqplib, int fd, int type, int contype)
 	mqpacket *mqpck;
 	
 	mqpck = malloc (sizeof (mqpacket));
-	mqpck->offset = mqpck->outoffset = 0;
 	mqpck->sock = fd;
 	mqpck->outmsg.MID = -1;
 	mqpck->nxtoutmid = 1;
 	mqpck->xdsin = pck_init_engines(mqplib, type, XDS_DECODE);
 	mqpck->xdsout = pck_init_engines(mqplib, type, XDS_ENCODE);
 	mqpck->pollopts = 0;
-	mqpck->bufferlen = 0;
-	mqpck->buffer = NULL;
 	mqpck->si.username = NULL;
 	mqpck->si.password = NULL;
+	mqpck->inbuf = mqbuffer_new();
+	mqpck->outbuf = mqbuffer_new();
 	
 
 #if 0
@@ -231,7 +227,8 @@ pck_del_connection (mqp *mqplib, mqpacket * mqpck)
 #endif
 	xds_destroy (mqpck->xdsout);
 	xds_destroy (mqpck->xdsin);
-	if (mqpck->bufferlen > 0) free(mqpck->buffer);
+	mqbuffer_free(mqpck->inbuf);
+	mqbuffer_free(mqpck->outbuf);
 	if (mqpck->si.username) {
 		free(mqpck->si.username);
 		free(mqpck->si.password);
@@ -244,35 +241,40 @@ int
 read_fd (mqp *mqplib, mqpacket *mqp)
 {
 	char buf[BUFSIZE];
-	int i;
+	int i, used;
 
 
 	bzero (buf, BUFSIZE);
 	i = read (mqp->sock, buf, BUFSIZE);
-	if ((i <= 0) && (i != EAGAIN)) {
+	if ((i < 0) && (i != EAGAIN)) {
 		/* error */
 		if (mqplib->logger)
-			mqplib->logger("Failed to Read fd %d: %s", mqp->sock, strerror(errno));
+			mqplib->logger("Failed to Read fd %d(%d): %s", mqp->sock,i, strerror(errno));
 		close_fd (mqplib, mqp);
 		/* XXX close and clean up */
 		return NS_FAILURE;
+	} else if (i == 0) {
+		return NS_FAILURE;
 	} else {
+		mqbuffer_add(mqp->inbuf, buf, i);
+#if 0
 		buffer_add (mqp, buf, i);
+#endif
 	}
-	/* don't process packet till its authed */
-	while ((mqp->offset > 0)  && i > 0) {
-		i = pck_parse_packet (mqplib, mqp, mqp->buffer, mqp->offset);
-		if (i > 1) {
-			buffer_del (mqp, i);
-		} else if (i == NS_FAILURE) {
+	/* XXX don't process packet till its authed */
+	while (mqp->inbuf->off > 0) {
+		used = pck_parse_packet (mqplib, mqp);
+		if (used > 1) {
+			mqbuffer_drain (mqp->inbuf, used);
+		} else if (used == NS_FAILURE) {
 			close_fd (mqplib, mqp);
 			return NS_FAILURE;
-		} else if (i == -2) {
+		} else if (used == -2) {
 			return NS_SUCCESS;
 		}
 	}
 	if (mqplib->logger) {
-		mqplib->logger ("processed %d bytes %d left", i, mqp->offset);
+		mqplib->logger ("processed %d bytes %d left", i, mqp->inbuf->off);
 	}
 	return NS_SUCCESS;
 }
@@ -291,52 +293,39 @@ close_fd (mqp *mqplib, mqpacket * mqp)
 
 
 int
-buffer_add (mqpacket * mqp, void *data, size_t datlen)
-{
-	size_t need = mqp->offset + datlen;
-//      size_t oldoff = mqp->offset;
-
-	if (mqp->bufferlen < need) {
-		void *newbuf;
-		int length = mqp->bufferlen;
-
-		if (length < 256)
-			length = 256;
-		while (length < need)
-			length <<= 1;
-
-		if ((newbuf = realloc (mqp->buffer, length)) == NULL)
-			return (-1);
-		mqp->buffer = newbuf;
-		mqp->bufferlen = length;
-	}
-
-	memcpy (mqp->buffer + mqp->offset, data, datlen);
-	mqp->offset += datlen;
-
-#if 0
-	if (datlen && mqp->cb != NULL)
-		(*mqp->cb) (mqp, oldoff, mqp->off, mqp->cbarg);
-#endif
-	return (0);
-}
-
-void
-buffer_del (mqpacket * mqp, size_t drainlen)
-{
-
-	memmove (mqp->buffer, mqp->buffer + drainlen, mqp->offset - drainlen);
-	mqp->offset = mqp->offset - drainlen;
-}
-
-int
 write_fd (mqp *mqplib, mqpacket * mqp)
 {
 	int i;
-	
-	if (mqp->outbufferlen > 0) {
-		i = write (mqp->sock, mqp->outbuffer, mqp->outbufferlen);
-		if (i == mqp->outbufferlen) {
+	int static j = 0;	
+#ifdef DEBUG
+	if (j == 1) {
+		print_decode(mqp,2);
+		j = 0;
+	}
+#endif
+	if (mqp->outbuf->off > 0) {
+		i = write (mqp->sock, mqp->outbuf->buffer, mqp->outbuf->off);
+		if (i < 0 ) {
+			if (errno == EAGAIN) {
+				return NS_SUCCESS;
+			}
+			/* something went wrong sending the data */
+			if (mqplib->logger)
+				mqplib->logger ("Error Sending on fd %d(%d): %s", mqp->sock, i, strerror(errno));
+			close_fd (mqplib, mqp);
+			return NS_FAILURE;
+		} else if (i == 0) {
+			return NS_SUCCESS;
+		} else {
+			mqbuffer_drain(mqp->outbuf, i);
+			if (i == mqp->outbuf->off) {
+				mqp->pollopts |= POLLOUT;
+			} else {
+				mqp->pollopts &= ~POLLOUT;
+			}
+		}
+#if 0
+		if (i == mqp->outbuff->off) {
 			bzero(mqp->outbuffer, mqp->outbufferlen);
 			free (mqp->outbuffer);
 			mqp->outbufferlen = mqp->outoffset = 0;
@@ -345,16 +334,11 @@ write_fd (mqp *mqplib, mqpacket * mqp)
 			memmove (mqp->outbuffer, mqp->outbuffer + i, mqp->outbufferlen - i);
 			mqp->outbufferlen -= i;
 			mqp->pollopts |= POLLOUT;
+			print_decode(mqp,2);
+			j = 1;
 		} else {
-			if (errno == EAGAIN) {
-				return NS_SUCCESS;
-			}
-			/* something went wrong sending the data */
-			if (mqplib->logger)
-				mqplib->logger ("Error Sending on fd %d %s", mqp->sock, strerror(errno));
-			close_fd (mqplib, mqp);
-			return NS_FAILURE;
 		}
+#endif
 	} else {
 		/* somethign went wrong encoding the data */
 		if (mqplib->logger)
@@ -377,13 +361,13 @@ void print_decode(mqpacket *mqp, int what) {
 	switch (what) {
 		case 1:
 			printf("Decode: ");
-			strncpy(buf2, mqp->buffer, mqp->offset);
-			len = mqp->offset;
+			strncpy(buf2, mqp->inbuf->buffer, mqp->inbuf->off);
+			len = mqp->inbuf->off;
 			break;
 		case 2:
 			printf("Encode: ");
-			strncpy(buf2, mqp->outbuffer, mqp->outbufferlen);
-			len = mqp->outbufferlen;
+			strncpy(buf2, mqp->outbuf->buffer, mqp->outbuf->off);
+			len = mqp->outbuf->off;
 			break;
 
 	}

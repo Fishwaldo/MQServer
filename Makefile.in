@@ -36,9 +36,9 @@ build_triplet = @build@
 host_triplet = @host@
 DIST_COMMON = $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(top_srcdir)/Include/config.h.in \
-	$(top_srcdir)/Include/xds.h.in $(top_srcdir)/configure \
-	$(top_srcdir)/rules.mk config.guess config.sub depcomp \
-	install-sh ltmain.sh missing mkinstalldirs
+	$(top_srcdir)/Include/xds.h.in $(top_srcdir)/adns/config.h.in \
+	$(top_srcdir)/configure $(top_srcdir)/rules.mk config.guess \
+	config.sub depcomp install-sh ltmain.sh missing mkinstalldirs
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/ax_maintainer_mode_auto_silent.m4 \
@@ -50,7 +50,7 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno configure.status.lineno
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/Include/config.h
-CONFIG_CLEAN_FILES = Include/xds.h
+CONFIG_CLEAN_FILES = Include/xds.h adns/config.h
 SOURCES =
 DIST_SOURCES =
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
@@ -259,6 +259,8 @@ distclean-hdr:
 	-rm -f Include/config.h Include/stamp-h1
 Include/xds.h: $(top_builddir)/config.status $(top_srcdir)/Include/xds.h.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
+adns/config.h: $(top_builddir)/config.status $(top_srcdir)/adns/config.h.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -393,7 +395,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/Include
+	$(mkdir_p) $(distdir)/Include $(distdir)/adns
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \

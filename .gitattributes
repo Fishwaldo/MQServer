@@ -6,6 +6,7 @@ Client/list.c -text
 Client/testclient.c -text
 Include/admincli.h -text
 Include/authqueue.h -text
+Include/buffer.h -text
 Include/callback.h -text
 Include/client.h -text
 Include/conf.h -text
@@ -32,6 +33,7 @@ Include/xds_engine_xdr_mqs.h -text
 Include/xds_p.h -text
 Libs/Makefile.am -text
 Libs/Makefile.in -text
+Libs/buffer.c -text
 Libs/decodepacket.c -text
 Libs/encodepacket.c -text
 Libs/packet.c -text

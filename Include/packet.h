@@ -29,6 +29,7 @@
 #include "defines.h"
 #include "xds.h"
 #include "xds_engine_xdr_mqs.h"
+#include "buffer.h"
 
 /* encoding engine structs */
 #define NUMENGINES 40
@@ -146,12 +147,8 @@ typedef struct mqpacket {
 	int wiretype;
 	struct mq_data_auth si;
 	void *cbarg;
-	void *buffer;
-	size_t bufferlen;
-	size_t offset;
-	void *outbuffer;
-	size_t outbufferlen;
-	size_t outoffset;
+	struct mqbuffer *inbuf;
+	struct mqbuffer *outbuf;
 	struct message inmsg;
 	struct message outmsg;
 	xds_t *xdsin;
@@ -209,7 +206,7 @@ int close_fd (mqp *mqplib, mqpacket * mqp);
 int write_fd (mqp *mqplib, mqpacket * mqp);
 mqpacket * pck_new_connection (mqp *mqplib, int fd, int type, int contype);
 void print_decode(mqpacket *, int what);
-int pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long buflen);
+int pck_parse_packet (mqp *mqplib, mqpacket * mqp);
 unsigned long pck_send_ack(mqp *mqplib, mqpacket *mqp, int MID);
 unsigned long pck_send_error(mqp *mqplib, mqpacket *mqp, char *fmt, ...);
 unsigned long pck_send_message_struct(mqp *mqplib, mqpacket *mqp, structentry *mystruct, int cols, void *data, char *destination, char *topic);

@@ -189,6 +189,8 @@ unsigned long
 pck_commit_data (mqp * mqplib, mqpacket * mqpck)
 {
 	int rc;
+	char *buffer;
+	size_t buflen;
 
 	if (mqpck->wiretype == ENG_TYPE_XML) {
 		rc = xds_encode (mqpck->xdsout, "xmlstop");
@@ -199,12 +201,13 @@ pck_commit_data (mqp * mqplib, mqpacket * mqpck)
 			return NS_FAILURE;
 		}
 	}
-	rc = xds_getbuffer (mqpck->xdsout, XDS_GIFT, (void **) &mqpck->outbuffer, &mqpck->outbufferlen) ;
+	rc = xds_getbuffer (mqpck->xdsout, XDS_GIFT, (void **) &buffer, &buflen) ;
 	if (rc != XDS_OK) {
 		if (mqplib->logger)
 			mqplib->logger ("OutBuffer is Full. %d", rc);
 		return NS_FAILURE;
 	}
+	mqbuffer_add(mqpck->outbuf, buffer, buflen);
 	write_fd(mqplib, mqpck);
 	rc = mqpck->outmsg.MID;
 	pck_remove(mqplib, mqpck);

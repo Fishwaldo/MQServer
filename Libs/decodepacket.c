@@ -42,13 +42,14 @@
 
 /* this is called from the socket recv code. */
 int
-pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long buflen)
+pck_parse_packet (mqp *mqplib, mqpacket * mqp)
 {
 	int rc, usedbuf;
 
 	
 	/* XXX XDR engine for now */
-	if (xds_setbuffer (mqp->xdsin, XDS_LOAN, buffer, buflen) != XDS_OK) {
+	printf("%d\n", mqp->inbuf->off);
+	if (xds_setbuffer (mqp->xdsin, XDS_LOAN, mqp->inbuf->buffer, mqp->inbuf->off) != XDS_OK) {
 		if (mqplib->logger)
 			mqplib->logger ("XDS setbuffer Failed");
 		/* XXX drop client ? */
@@ -59,8 +60,9 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 	if (mqp->wiretype == ENG_TYPE_XML) {
 		/* look for terminator */
 		/* XML is a string, so make sure its null terminated at the right point */
-		buffer[buflen] = '\0';
-		if (!strstr(buffer, "</xds>")) {
+/*		strcat(buffer, '\0'); */
+/*		buffer[buflen] = '\0'; */
+		if (!strstr(mqp->inbuf->buffer, "</xds>")) {
 			return -2;
 		} 
 		rc = xds_decode (mqp->xdsin, "xmlstart mqpheader", mqp);
