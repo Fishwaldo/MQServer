@@ -49,14 +49,16 @@ pck_parse_packet (mqprotocol * mqp, u_char * buffer, unsigned long buflen)
 
 	if (mqp->wtforinpack == 1) {
 		/* XXX XDR engine for now */
-		pck_create_mqpacket (mqpck, ENG_TYPE_XDR, XDS_DECODE);
+		mqpck = pck_create_mqpacket (ENG_TYPE_XDR, XDS_DECODE);
 		if (mqpck == NULL) {
+			if (mqpconfig.logger)
+				mqpconfig.logger("create packet failed");
 			/* XXX drop client ? */
 			return NS_FAILURE;
 		}
 		if (xds_setbuffer (mqpck->xds, XDS_LOAN, buffer, buflen) != XDS_OK) {
 			if (mqpconfig.logger)
-				mqpconfig.logger ("XDS Decode of Header Failed");
+				mqpconfig.logger ("XDS setbuffer Failed");
 			pck_destroy_mqpacket (mqpck, NULL);
 			/* XXX drop client ? */
 			return NS_FAILURE;
@@ -65,6 +67,7 @@ pck_parse_packet (mqprotocol * mqp, u_char * buffer, unsigned long buflen)
 		rc = xds_decode (mqpck->xds, "mqpheader", &mqpck);
 		switch (rc) {
 		case XDS_OK:
+			printf("breaking here\n");
 			break;
 		case XDS_ERR_UNDERFLOW:
 			if (mqpconfig.logger)

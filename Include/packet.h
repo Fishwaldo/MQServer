@@ -134,11 +134,13 @@ typedef struct myengines {
 	const char myname[BUFSIZE];
 }myengines;
 
+extern myengines enc_xdr_engines[NUMENGINES];
 
 
 
 
-
+extern int encode_mqs_header (xds_t * xds, void *engine_context, void *buffer, size_t buffer_size, size_t * used_buffer_size, va_list * args);
+extern int decode_mqs_header (xds_t * xds, void *engine_context, void *buffer, size_t buffer_size, size_t * used_buffer_size, va_list * args);
 
 
 
@@ -150,7 +152,7 @@ int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen);
 
 
 void pck_destroy_mqpacket(mqpacket *mqpck, mqprotocol *mqp);
-void pck_create_mqpacket(mqpacket *mqpck, int type, xds_mode_t direction);
+mqpacket *pck_create_mqpacket(int type, xds_mode_t direction);
 lnode_t *pck_find_mid_node(unsigned long MID, list_t *queue);
 
 /* these are error defines */

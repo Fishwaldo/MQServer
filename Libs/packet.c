@@ -105,6 +105,8 @@ pck_init ()
 		i = listen_on_port (mqpconfig.port);
 		if (i > 0) {
 			mqpconfig.listenfd = i;
+		} else {
+			mqpconfig.listenfd = -1;
 		}
 	} else {
 		mqpconfig.listenfd = -1;
@@ -169,16 +171,18 @@ pck_find_mid_node (unsigned long MID, list_t * queue)
 	return (list_find (queue, (void *) MID, compare_mid));
 }
 
-void
-pck_create_mqpacket (mqpacket * mqpck, int type, xds_mode_t direction)
+mqpacket *
+pck_create_mqpacket (int type, xds_mode_t direction)
 {
 	int i;
+	mqpacket *mqpck;
+	
 	mqpck = malloc (sizeof (mqpacket));
 	if (xds_init (&mqpck->xds, direction) != XDS_OK) {
 		if (mqpconfig.logger)
 			mqpconfig.logger ("xds init failed: %s", strerror (errno));
 		free (mqpck);
-		mqpck = NULL;
+		return NULL;
 	}
 	i = 0;
 	switch (type) {
@@ -193,7 +197,7 @@ pck_create_mqpacket (mqpacket * mqpck, int type, xds_mode_t direction)
 			}
 			i++;
 		}
-		break;
+		return mqpck;
 	case ENG_TYPE_XML:
 		while (i < NUMENGINES - 1) {
 			if (xds_register (mqpck->xds, dec_xml_engines[i].myname, dec_xml_engines[i].ptr, NULL) != XDS_OK) {
@@ -205,14 +209,14 @@ pck_create_mqpacket (mqpacket * mqpck, int type, xds_mode_t direction)
 			}
 			i++;
 		}
-		break;
+		return mqpck;
 	default:
 		if (mqpconfig.logger)
 			mqpconfig.logger ("invalid pck_create_mqpacket type %d", type);
 		xds_destroy (mqpck->xds);
 		free (mqpck);
 		mqpck = NULL;
-		return;
+		return mqpck;
 	}
 }
 
@@ -486,7 +490,7 @@ write_fd (int fd, mqprotocol * mqp)
 
 
 int
-pck_before_poll (struct pollfd *ufds)
+pck_before_poll (struct pollfd ufds[MAXCONNECTIONS])
 {
 	lnode_t *node;
 	mqprotocol *mqp;
@@ -496,19 +500,22 @@ pck_before_poll (struct pollfd *ufds)
 	while (node != NULL) {
 		mqp = lnode_get (node);
 		if (mqp->pollopts > 0) {
-			ufds = realloc (ufds, count + 1 * sizeof (struct pollfd));
+			//ufds = realloc (ufds, count + 1 * sizeof (struct pollfd));
 			ufds[count].fd = mqp->sock;
 			ufds[count].events = mqp->pollopts;
 			count++;
 			node = list_next (connections, node);
 		}
+		if (count == (MAXCONNECTIONS -1)) {
+			break;
+		}
 	}
 	/* now do the listen ports */
 	if (mqpconfig.listenfd > 0) {
-		ufds = realloc (ufds, count + 1 * sizeof (struct pollfd));
+		//ufds = realloc (ufds, count + 1 * sizeof (struct pollfd));
 		ufds[count].fd = mqpconfig.listenfd;
 		/* XXX */
-		ufds[count].events = POLLIN | POLLOUT;
+		ufds[count].events = POLLIN;
 		count++;
 	}
 	return count;
@@ -539,11 +546,28 @@ pck_after_poll (const struct pollfd *ufds, int nfds)
 int
 pck_process ()
 {
-	struct pollfd *ufds = NULL;
+	struct pollfd ufds[MAXCONNECTIONS];
 	int i, j;
+
+	/* first thing we do is see if we are meant to be a server */
+	if (mqpconfig.server == 1 && mqpconfig.listenfd == -1) {
+		i = listen_on_port (mqpconfig.port);
+		if (i > 0) {
+			mqpconfig.listenfd = i;
+		} else {
+			mqpconfig.listenfd = -1;
+		}
+	}		
 
 	i = pck_before_poll (ufds);
 	j = poll (ufds, i, 100);
+	if (j < 0) {
+		if (mqpconfig.logger) 
+			mqpconfig.logger("poll returned %d: %s", j, strerror(j));
+		return NS_FAILURE;
+	}
+	if (mqpconfig.logger) 
+		mqpconfig.logger("checked %d returned %d", i, j);
 	return pck_after_poll (ufds, j);
 }
 
@@ -558,19 +582,10 @@ listen_on_port (int port)
 	adrlen = sizeof (struct sockaddr_in);
 	(void) memset ((void *) &srvskt, 0, (size_t) adrlen);
 	srvskt.sin_family = AF_INET;
+	srvskt.sin_addr.s_addr = INADDR_ANY;
+	srvskt.sin_port = htons (port);
 
-#if 0
-	/* bind to the local IP */
-	if (dobind) {
-		srvskt.sin_addr = lsa.sin_addr;
-	} else {
-#endif
-		srvskt.sin_addr.s_addr = INADDR_ANY;
-#if 0
-	}
-#endif
 
-	srvskt.sin_port = htons (me.port);
 	if ((srvfd = socket (AF_INET, SOCK_STREAM, 0)) < 0) {
 		if (mqpconfig.logger)
 			mqpconfig.logger ("SqlSrv: Unable to get socket for port %d.", port);
@@ -578,7 +593,7 @@ listen_on_port (int port)
 	}
 	flags = fcntl (srvfd, F_GETFL, 0);
 	flags |= O_NONBLOCK;
-	(void) fcntl (srvfd, F_SETFL, flags);
+// 	(void) fcntl (srvfd, F_SETFL, flags);
 //  setsockopt(srvfd, SOL_SOCKET, SO_REUSEADDR, (char*) 1, sizeof(1));
 
 	if (bind (srvfd, (struct sockaddr *) &srvskt, adrlen) < 0) {

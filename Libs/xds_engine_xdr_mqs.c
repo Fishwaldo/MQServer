@@ -5,7 +5,7 @@
 #include "xds.h"
 
 
-int
+extern int
 encode_mqs_header (xds_t * xds, void *engine_context, void *buffer, size_t buffer_size, size_t * used_buffer_size, va_list * args)
 {
 	struct mqpacket *mqp;
@@ -13,7 +13,7 @@ encode_mqs_header (xds_t * xds, void *engine_context, void *buffer, size_t buffe
 	return xds_encode (xds, "uint32 uint32 uint32 uint32 uint32", mqp->MID, mqp->MSGTYPE, mqp->VERSION, mqp->flags);
 }
 
-int
+extern int
 decode_mqs_header (xds_t * xds, void *engine_context, void *buffer, size_t buffer_size, size_t * used_buffer_size, va_list * args)
 {
 	struct mqpacket *mqp;

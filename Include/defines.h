@@ -97,6 +97,10 @@
 #define DNS_QUEUE_SIZE		20
 #endif
 
+#ifndef MAXCONNECTIONS
+#define MAXCONNECTIONS		20
+#endif
+
 
 /* MAXPATH 
  * used to determine buffer sizes for file system operations

@@ -47,7 +47,7 @@ pck_new_packet (int msgtype, unsigned long flags)
 {
 	mqpacket *mqpck;
 
-	pck_create_mqpacket (mqpck, ENG_TYPE_XDR, XDS_ENCODE);
+	mqpck = pck_create_mqpacket (ENG_TYPE_XDR, XDS_ENCODE);
 	/* MID is null till we send, this way we can reuse this packet def */
 	mqpck->MID = -1;
 	mqpck->MSGTYPE = msgtype;

@@ -22965,7 +22965,7 @@ fi
 
 
 
-                                        ac_config_files="$ac_config_files Makefile Server/Makefile Libs/Makefile Include/xds.h"
+                                                  ac_config_files="$ac_config_files Makefile Server/Makefile Libs/Makefile Include/xds.h Client/Makefile"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -23540,6 +23540,7 @@ do
   "Server/Makefile" ) CONFIG_FILES="$CONFIG_FILES Server/Makefile" ;;
   "Libs/Makefile" ) CONFIG_FILES="$CONFIG_FILES Libs/Makefile" ;;
   "Include/xds.h" ) CONFIG_FILES="$CONFIG_FILES Include/xds.h" ;;
+  "Client/Makefile" ) CONFIG_FILES="$CONFIG_FILES Client/Makefile" ;;
   "depfiles" ) CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
   "Include/config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS Include/config.h" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5

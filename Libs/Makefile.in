@@ -142,8 +142,8 @@ xds_uint16_t = @xds_uint16_t@
 xds_uint32_t = @xds_uint32_t@
 xds_uint64_t = @xds_uint64_t@
 xds_uint8_t = @xds_uint8_t@
-lib_LTLIBRARIES = libmqserver.la
-libmqserver_la_SOURCES = packet.c decodepacket.c encodepacket.c encode.c \
+lib_LTLIBRARIES = libmqpacket.la
+libmqpacket_la_SOURCES = packet.c decodepacket.c encodepacket.c encode.c \
 			xds.c xds_engine_xdr.c xds_engine_xml.c xds_version.c \
 			xds_engine_xdr_mqs.c
 
@@ -157,12 +157,12 @@ CONFIG_HEADER = $(top_builddir)/Include/config.h
 CONFIG_CLEAN_FILES =
 LTLIBRARIES = $(lib_LTLIBRARIES)
 
-libmqserver_la_LDFLAGS =
-libmqserver_la_LIBADD =
-am_libmqserver_la_OBJECTS = packet.lo decodepacket.lo encodepacket.lo \
+libmqpacket_la_LDFLAGS =
+libmqpacket_la_LIBADD =
+am_libmqpacket_la_OBJECTS = packet.lo decodepacket.lo encodepacket.lo \
 	encode.lo xds.lo xds_engine_xdr.lo xds_engine_xml.lo \
 	xds_version.lo xds_engine_xdr_mqs.lo
-libmqserver_la_OBJECTS = $(am_libmqserver_la_OBJECTS)
+libmqpacket_la_OBJECTS = $(am_libmqpacket_la_OBJECTS)
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)/Include
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -179,9 +179,9 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
 	$(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
-DIST_SOURCES = $(libmqserver_la_SOURCES)
+DIST_SOURCES = $(libmqpacket_la_SOURCES)
 DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/rules.mk Makefile.am
-SOURCES = $(libmqserver_la_SOURCES)
+SOURCES = $(libmqpacket_la_SOURCES)
 
 all: all-am
 
@@ -220,8 +220,8 @@ clean-libLTLIBRARIES:
 	  echo "rm -f \"$${dir}/so_locations\""; \
 	  rm -f "$${dir}/so_locations"; \
 	done
-libmqserver.la: $(libmqserver_la_OBJECTS) $(libmqserver_la_DEPENDENCIES) 
-	$(LINK) -rpath $(libdir) $(libmqserver_la_LDFLAGS) $(libmqserver_la_OBJECTS) $(libmqserver_la_LIBADD) $(LIBS)
+libmqpacket.la: $(libmqpacket_la_OBJECTS) $(libmqpacket_la_DEPENDENCIES) 
+	$(LINK) -rpath $(libdir) $(libmqpacket_la_LDFLAGS) $(libmqpacket_la_OBJECTS) $(libmqpacket_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT) core *.core

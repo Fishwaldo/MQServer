@@ -143,7 +143,7 @@ xds_uint32_t = @xds_uint32_t@
 xds_uint64_t = @xds_uint64_t@
 xds_uint8_t = @xds_uint8_t@
 AUTOMAKE_OPTIONS = foreign
-SUBDIRS = Libs libevent
+SUBDIRS = Libs libevent Client
 ACLOCAL_AMFLAGS = -I .
 LINK = @echo "Linking $@"; $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
         $(AM_LDFLAGS) $(LDFLAGS) -o $@
