@@ -137,6 +137,23 @@ int enable_server(int port) {
 	return NS_SUCCESS;
 }
 
+void 
+pck_fini() {
+	lnode_t *node;
+	mqpacket *mqp;
+
+	node = list_first (connections);
+	while (node != NULL) {
+		mqp = lnode_get (node);
+		close_fd(sockconfig.mqplib, mqp);
+		node = list_next(connections, node);
+	}
+	list_destroy_nodes(connections);
+	list_destroy(connections);
+	fini_mqlib(sockconfig.mqplib);
+}
+		
+
 
 int
 pck_before_poll (struct pollfd ufds[MAXCONNECTIONS])
@@ -488,6 +505,7 @@ pck_decode_message(mq_data_senddata *sd, structentry *mystruct, int cols, void *
 
 	if (xds_setbuffer (xdstmp, XDS_LOAN, sd->data, sd->len) != XDS_OK) {
 		pck_logger("pck_decode_message XDS setbuffer Failed");
+		xds_destroy(xdstmp);
 	        return NS_FAILURE;
 	}
 
@@ -501,6 +519,7 @@ pck_decode_message(mq_data_senddata *sd, structentry *mystruct, int cols, void *
 				} else {
 					pck_logger("pck_decode_message, STR_PSTR failed\n");
 				}			
+				free(string);
 				break;
 			case STR_INT:
 				rc = xds_decode(xdstmp, "int32", &myint);
@@ -519,10 +538,12 @@ pck_decode_message(mq_data_senddata *sd, structentry *mystruct, int cols, void *
 				} else {
 					pck_logger("pck_decode_message, STR_STR failed\n");
 				}			
+				free(string);
 				break;
 			default:
 				pck_logger( "pck_decode_message, unknown type");
 		}
 	}
+	xds_destroy(xdstmp);
 	return NS_SUCCESS;
 }

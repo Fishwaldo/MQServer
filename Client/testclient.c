@@ -36,7 +36,7 @@
 
 void pck_logger(char *fmt,...);
 int conid;
-int cansend;
+int candie;
 
 typedef struct testdata {
 	char *name;
@@ -88,16 +88,19 @@ int gotaction(int type, void *cbarg) {
 		case PCK_SMP_QUEUEINFO:
 			qi = pck_get_queueinfo(conid);
 			printf("queue info: %s %d %s\n", qi->queue, qi->flags, qi->filter);
-			cansend = 1;
 			pck_simple_send_message_struct(conid, &testdataentry, (sizeof(testdataentry)/sizeof(structentry)), tmp, "testqueue", "Mytopic");
 			break;
 		case PCK_SMP_MSGFROMQUEUE:
 			sd = pck_get_msgfromqueue(conid);
 			tmp2 = malloc(sizeof(testdata));
-			printf("%p %p %p %p\n", tmp2, tmp2->name, tmp2->size, tmp2->testdata);
 			pck_decode_message(sd, testdataentry,(sizeof(testdataentry)/sizeof(structentry)), tmp2);
-			printf("got %s %d %s\n", tmp2->name, tmp2->size, tmp2->testdata);
 			printf("queue %s topic %s messid %d time %d from %s\n", sd->queue, sd->topic, sd->messid, sd->timestamp, sd->from);
+			printf("got %s %d %s\n", tmp2->name, tmp2->size, tmp2->testdata);
+//			tmp->size+++;
+//			pck_simple_send_message_struct(conid, &testdataentry, (sizeof(testdataentry)/sizeof(structentry)), tmp, "testqueue", "Mytopic");
+			free(tmp2->name);
+			free(tmp2);
+			candie = 1;
 	}			
 
 }
@@ -117,17 +120,21 @@ int main() {
 	
 	printf("total size %d\n", (sizeof(testdataentry)/sizeof(structentry)));
 	
-	cansend = 0;
+	candie = 0;
 	conid = pck_make_connection("snoopy", "fish", "haha", 0, NULL, gotaction);
 	while (rc == 1) {
 		rc = pck_process();
-		if (cansend == 1) {
-			tmp->size++;
-			pck_simple_send_message_struct(conid, &testdataentry, (sizeof(testdataentry)/sizeof(structentry)), tmp, "testqueue", "Mytopic");
-		}
-		sleep(1);
+		if (candie == 1)
+			break;
 	}
+	pck_fini();
+	free(tmp);
 }
 
                                                 
 
+void fini() {
+	pck_fini();
+	free(tmp);
+	exit(1);
+}

@@ -64,6 +64,11 @@ void *init_messqueue(void *arg) {
 	/* loop and wait */
 	
 	while (candie != 1) {
+		if (me.die == 1) {
+			nlog(LOG_NORMAL, LOG_AUTHQ, "Shutting Down MessQ Thread");
+			destroy_thread();
+		}
+
 		/* XXX config a timeout */
 		ret = qm_wait(messq, 60);
 		if (ret == ETIMEDOUT) {

@@ -137,7 +137,7 @@ nlog (int level, int scope, char *fmt, ...)
 #ifndef DEBUG
 		if (config.foreground)
 #endif
-			printf ("%s %s - %s\n", loglevels[level - 1], logscope[scope], log_buf);
+			printf ("(%s) %s %s - %s\n", log_fmttime, loglevels[level - 1], logscope[scope], log_buf);
 	}
 	MYUNLOCK(&logmutex);
 }

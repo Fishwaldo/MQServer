@@ -100,6 +100,12 @@ mqp *init_mqlib () {
 	return mqplib;
 }
 
+
+void fini_mqlib (mqp *mqplib) {
+	free(mqplib);
+}
+
+
 void
 pck_set_logger (mqp *mqplib, logfunc * logger)
 {
@@ -220,6 +226,7 @@ pck_del_connection (mqp *mqplib, mqpacket * mqpck)
 #endif
 	xds_destroy (mqpck->xdsout);
 	xds_destroy (mqpck->xdsin);
+	if (mqpck->bufferlen > 0) free(mqpck->buffer);
 	if (mqpck->si.username) {
 		free(mqpck->si.username);
 		free(mqpck->si.password);
@@ -336,7 +343,7 @@ write_fd (mqp *mqplib, mqpacket * mqp)
 		} else {
 			/* something went wrong sending the data */
 			if (mqplib->logger)
-				mqplib->logger ("Error Sending on fd %d", mqp->sock);
+				mqplib->logger ("Error Sending on fd %d %s", mqp->sock, strerror(errno));
 			close_fd (mqplib, mqp);
 			return NS_FAILURE;
 		}

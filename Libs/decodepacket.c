@@ -163,7 +163,44 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 	if (mqplib->callback) {
 		mqplib->callback((void *)mqplib, mqp);
 	}
-
+printf("%d\n", mqp->inmsg.MSGTYPE);
+	switch (mqp->inmsg.MSGTYPE) {
+		case PCK_ACK:
+			break;
+		case PCK_ERROR:
+			free(mqp->inmsg.data.string);
+			break;
+		case PCK_SRVCAP:
+		case PCK_CLNTCAP:
+			free(mqp->inmsg.data.srvcap.capstr);
+			break;
+		case PCK_AUTH:
+			free(mqp->inmsg.data.auth.username);
+			free(mqp->inmsg.data.auth.password);
+			break;
+		case PCK_SENDTOQUEUE:
+			free(mqp->inmsg.data.stream.queue);
+			free(mqp->inmsg.data.stream.topic);
+			free(mqp->inmsg.data.stream.data);
+			break;
+		case PCK_JOINQUEUE:
+			free(mqp->inmsg.data.joinqueue.queue);
+			free(mqp->inmsg.data.joinqueue.filter);
+			break;
+		case PCK_QUEUEINFO:
+			free(mqp->inmsg.data.joinqueue.queue);
+			free(mqp->inmsg.data.joinqueue.filter);
+			break;
+		case PCK_MSGFROMQUEUE:
+			free(mqp->inmsg.data.sendmsg.queue);
+			free(mqp->inmsg.data.sendmsg.topic);
+			free(mqp->inmsg.data.sendmsg.data);
+			free(mqp->inmsg.data.sendmsg.from);
+			break;
+		default:
+			if (mqplib->logger)
+				mqplib->logger ("Invalid MsgType Recieved");
+	}
 	/* finished processing the message. grab what buffer we consumed and return */
 	return usedbuf;
 }

@@ -58,6 +58,10 @@ void *init_authqueue(void *arg) {
 	/* loop and wait */
 	
 	while (candie != 1) {
+		if (me.die == 1) {
+			nlog(LOG_NORMAL, LOG_AUTHQ, "Shutting Down AuthQ Thread");
+			destroy_thread();
+		}
 		ret = qm_wait(authq, me.authqtimeout);
 		if (ret == ETIMEDOUT) {
 			pthread_mutex_unlock(&authq->mutex);

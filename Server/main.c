@@ -290,6 +290,7 @@ char msg_sigterm[]="SIGTERM received, shutting down server.";
 RETSIGTYPE
 serv_die ()
 {
+	me.die = 1;
 #ifdef VALGRIND
 	exit(NS_SUCCESS);
 #else /* VALGRIND */
@@ -354,10 +355,16 @@ void do_backtrace(void)
 RETSIGTYPE
 serv_segv ()
 {
+	static int inbacktrace = 0;
 	/** if the segv happened while we were inside a module, unload and try to restore 
 	 *  the stack to where we were before we jumped into the module
 	 *  and continue on
 	 */
+	if (inbacktrace == 1) {
+		return;
+	} else {
+		inbacktrace = 1;
+	}
 	if (segv_inmodule[0] != 0) {
 		nlog (LOG_CRITICAL, LOG_CORE, "------------------------SEGFAULT REPORT-------------------------");
 		nlog (LOG_CRITICAL, LOG_CORE, "Please view the README for how to submit a bug report");
@@ -370,6 +377,7 @@ serv_segv ()
 		/* flush the logs out */
 		close_logs(); 
 		longjmp (sigvbuf, -1);
+		inbacktrace = 0;
 		return;
 	}
 	/** The segv happened in our core, damn it */
@@ -381,6 +389,7 @@ serv_segv ()
 	nlog (LOG_CRITICAL, LOG_CORE, "Location: %s", segv_location);
 	do_backtrace();
 	nlog (LOG_CRITICAL, LOG_CORE, "-------------------------END OF REPORT--------------------------");
+	me.die = 1;
 	close_logs();
 	/* clean up */
 	do_exit (NS_EXIT_SEGFAULT, NULL);
@@ -480,6 +489,7 @@ do_exit (NS_EXIT_TYPE exitcode, char* quitmsg)
 	}
 
 	fini_logs();
+	me.die = 1;
 #if 0
 	if ((exitcode == NS_EXIT_RECONNECT && me.r_time > 0) || exitcode == NS_EXIT_RELOAD) {
 		execve ("./mqserver", NULL, NULL);

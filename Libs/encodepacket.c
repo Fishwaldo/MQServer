@@ -231,6 +231,7 @@ pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int
 						mqplib->logger ("xds encode header failed %d.", rc);
 					return NS_FAILURE;
 				}
+				free(mydata);
 				break;
 			case STR_INT:
 				mydata = data + mystruct[i].offset;
