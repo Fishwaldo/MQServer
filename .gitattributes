@@ -14,8 +14,9 @@ Include/packet.h -text
 Include/sock.h -text
 Include/version.h -text
 Libs/Makefile.in -text
+Libs/decodepacket.c -text
 Libs/encode.c -text
-Libs/packet.c -text
+Libs/encodepacket.c -text
 /Makefile.in -text
 Server/Makefile.in -text
 Server/client.c -text

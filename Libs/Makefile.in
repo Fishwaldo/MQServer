@@ -33,7 +33,7 @@ DOCS_PROGS =
 DATA = 
 
 OBJS = ${SRCS:.c=.o}
-SRCS =	packet.c
+SRCS =	decodepacket.c encodepacket.c encode.c
 
 INCLUDES = config.h hash.h list.h mqserver.h log.h dotconf.h dict.h
 
