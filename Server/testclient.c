@@ -26,7 +26,6 @@
 */
 
 #include <fcntl.h>
-#include <sys/poll.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -55,12 +54,12 @@ int main() {
 	u_short ver = 1;
 	u_long len;
 	u_long flag = 0;
-	u_long crc = 3099544737l;
+	u_long crc = 2099544737l;
 	char mydata[] = "This is my data string\0";
 	int fd;
 	
 	len = strlen(mydata);
-	fd = ConnectTo("127.0.0.1", 1234);
+	fd = ConnectTo("10.1.1.10", 1234);
 	printf("%d\n", fd);
 	if (fd < 0) {
 		printf("failed connect\n");
@@ -75,22 +74,22 @@ int main() {
 	PUTLONG(flag, buf);
 	PUTLONG(crc, buf);
 	memcpy(buf, mydata, strlen(mydata));
-	write(fd, outbuf, BUFSIZE);
+	write(fd, outbuf, 84+strlen(mydata));
 	fsync(fd);
-	sleep(1);
-	write(fd, outbuf, BUFSIZE);
+	sleep(5);
+	write(fd, outbuf, 84+strlen(mydata));
 	fsync(fd);
-	sleep(1);
-	write(fd, outbuf, BUFSIZE);
+	sleep(5);
+	write(fd, outbuf, 84+strlen(mydata));
 	fsync(fd);
-	sleep(1);
-	write(fd, outbuf, BUFSIZE);
+	sleep(5);
+	write(fd, outbuf, 84+strlen(mydata));
 	fsync(fd);
-	sleep(1);
-	write(fd, outbuf, BUFSIZE);
+	sleep(5);
+	write(fd, outbuf, 84+strlen(mydata));
 	fsync(fd);
-	sleep(1);
-	printf("%d\n", write(fd, outbuf, BUFSIZE));
+	sleep(5);
+	printf("%d\n", write(fd, outbuf, 84+strlen(mydata)));
 	fsync(fd);
 
 			

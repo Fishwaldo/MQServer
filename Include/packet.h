@@ -39,6 +39,9 @@
 #define OUTPACK_MAX 100
 #endif
 
+#define PCK_MIN_PACK_SIZE 84
+
+
 /* client protocol struct */
 typedef struct mqprotocol {
 	list_t *inpack;

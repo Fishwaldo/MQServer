@@ -88,7 +88,6 @@ static lnode_t *pck_find_mid_node(unsigned long MID, list_t *queue) {
 		
 
 
-#define PCK_MIN_PACK_SIZE 84
 int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen) {
 	mqpacket *mqpck;
 	u_char *outbuf;

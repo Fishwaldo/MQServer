@@ -49,7 +49,7 @@ static int listen_on_port(int port);
 static void setup_dns_socks();
 
 static int buffer_add(mqclient *mqc, void *data, size_t datlen);
-
+void buffer_del(mqclient *, size_t);
 
 /** @brief Connect to a server
  *
@@ -139,7 +139,11 @@ void client_activity(int fd, short eventtype, void *arg) {
 
 	/* only process the packet if we are ready */
 	if (mqc->pck) {
-		pck_parse_packet(mqc->pck, mqc->buffer, mqc->offset);
+		while (mqc->offset >= PCK_MIN_PACK_SIZE) {
+			 i = pck_parse_packet(mqc->pck, mqc->buffer, mqc->offset);
+			 buffer_del(mqc, i);
+		}
+	 printf("processed %d bytes %d left\n", i, mqc->offset);
 	}	
 }
 
@@ -315,7 +319,7 @@ int
 buffer_add(mqclient *mqc, void *data, size_t datlen)
 {
 	size_t need = mqc->offset + datlen;
-	size_t oldoff = mqc->offset;
+//	size_t oldoff = mqc->offset;
 
 	if (mqc->bufferlen < need) {
 		void *newbuf;
@@ -340,4 +344,10 @@ buffer_add(mqclient *mqc, void *data, size_t datlen)
 		(*mqc->cb)(mqc, oldoff, mqc->off, mqc->cbarg);
 #endif
 	return (0);
+}
+
+void buffer_del(mqclient *mqc, size_t drainlen) {
+	
+	memmove(mqc->buffer, mqc->buffer + drainlen, mqc->offset-drainlen);
+	mqc->offset = mqc->offset-drainlen;
 }

@@ -133,8 +133,10 @@ void got_reverse_lookup_answer(void *data, adns_answer * a) {
 		mqc->pck = pck_new_conn((void *)mqc, PCK_IS_CLIENT);
 	
 	/* if there is data in the buffer, see if we can parse it already */
-	if (mqc->offset > 0) {
-		pck_parse_packet(mqc->pck, mqc->buffer, mqc->offset);
+	while (mqc->offset >= PCK_MIN_PACK_SIZE) {
+		len = pck_parse_packet(mqc->pck, mqc->buffer, mqc->offset);
+		buffer_del(mqc, len);
+		printf("dns processed %d bytes, %d left\n", len, mqc->offset);
 	}
 
 }

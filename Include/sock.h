@@ -33,5 +33,4 @@ void sts (const char *buf, const int buflen);
 void start (void);
 
 int check_sql_sock();
-
 #endif

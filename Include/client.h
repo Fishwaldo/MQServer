@@ -106,4 +106,6 @@ typedef struct mqclient {
 
 mqclient *new_client(int);
 void del_client(mqclient *);
+void buffer_del(mqclient *mqc, size_t drainlen);
+
 #endif
