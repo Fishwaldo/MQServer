@@ -138,7 +138,6 @@ void client_activity(int fd, short eventtype, void *arg) {
 	}
 
 	/* only process the packet if we are ready */
-printf("mmmhmm\n");
 	if (mqc->pck) {
 		pck_parse_packet(mqc->pck, mqc->buffer, mqc->offset);
 	}	

@@ -68,18 +68,13 @@ mqprotocol *pck_new_conn(void *cbarg, int type) {
 	return NULL;
 }
 
-#define PCK_MIN_PACK_SIZE 1
+#define PCK_MIN_PACK_SIZE 84
 int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen) {
 	mqpacket *mqpck;
-	lnode_t *node;
-	int i;
-	u_short shorty;
-	u_long longy;
-	u_char hehe;
-	u_char mypack[BUFSIZE];
 	u_char *outbuf;
-	
-	int taken;
+	int gotdatasize;
+	lnode_t *node;
+
 	/* first thing we do is decide if the buffer holds the minium packet size required.*/
 	if (buflen < PCK_MIN_PACK_SIZE) {
 		return 0;
@@ -100,11 +95,50 @@ int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen) {
 		GETLONG(mqpck->LEN, outbuf);
 		GETLONG(mqpck->flags, outbuf);
 		GETLONG(mqpck->crc, outbuf);
+		gotdatasize = strlen(outbuf);
+#ifdef DEBUG
+		if (mqpconfig.logger)
+			mqpconfig.logger("Header Size: %d Data Size %lu Real Data Size: %d", (*outbuf - *buffer), mqpck->LEN, gotdatasize);
+#endif
 		if (mqpconfig.logger) 
-			mqpconfig.logger("Got Packet Decode: mid %lu msgtype %d Version %d len %lu flags %lu crc %lu \n", mqpck->MID, mqpck->MSGTYPE, mqpck->VERSION, mqpck->LEN, mqpck->flags, mqpck->crc);
+			mqpconfig.logger("Got Packet Decode: mid %lu msgtype %d Version %d len %lu flags %lu crc %lu", mqpck->MID, mqpck->MSGTYPE, mqpck->VERSION, mqpck->LEN, mqpck->flags, mqpck->crc);
+
 		mqpck->data = malloc(mqpck->LEN);
-		strncpy(mqpck->data, outbuf, mqpck->LEN);
+		bzero(mqpck->data, mqpck->LEN);
+		strncat(mqpck->data, outbuf, mqpck->LEN);
+
+		/* ok, seems fine so far, add it to the queue */
+		node = lnode_create(mqpck);
+		list_append(mqp->inpack, node);
+	
+		/* check if we got the entire message yet */
+		if (mqpck->LEN > gotdatasize) {
+			/* we are still waiting for more data */
+			mqp->wtforinpack = 0;
+#ifdef DEBUG		
+			if (mqpconfig.logger)
+				mqpconfig.logger("Wating for More Data (%lu) for MessageID %lu", (mqpck->LEN - gotdatasize), mqpck->MID);
+#endif	
+		} else if (mqpck->LEN == gotdatasize) {
+#ifdef DEBUG		
+			if (mqpconfig.logger)
+				mqpconfig.logger("Got All Our Data. Processing MessageID %lu", mqpck->MID);
+#endif	
+			/* XXX ok, process this packet */
+		} else {
+#ifdef DEBUG		
+			if (mqpconfig.logger)
+				mqpconfig.logger("Got More data than we expected. Throwing Away MessageID %lu", mqpck->MID);
+#endif	
+			/* XXX TODO Drop Client?*/
+		}			
+
+		return PCK_MIN_PACK_SIZE + mqpck->LEN;
+	} else {
+		/* XXX got additional data for previous message */
 	}
+	/* nothing done on the buffer, so return 0 */
+	return 0;
 }
 
 void pck_send_err(mqprotocol *mqp, int err, const char *msg) {

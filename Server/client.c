@@ -132,8 +132,6 @@ void got_reverse_lookup_answer(void *data, adns_answer * a) {
 	if (MQC_IS_TYPE_CLIENT(mqc)) 
 		mqc->pck = pck_new_conn((void *)mqc, PCK_IS_CLIENT);
 	
-printf("%d\n", mqc->pck->wtforinpack);
-printf("Eh %d\n", mqc->pck->servorclnt);
 	/* if there is data in the buffer, see if we can parse it already */
 	if (mqc->offset > 0) {
 		pck_parse_packet(mqc->pck, mqc->buffer, mqc->offset);

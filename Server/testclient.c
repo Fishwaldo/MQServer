@@ -52,16 +52,16 @@ static int buffer_add(mqclient *mqc, void *data, size_t datlen);
 int main() {
 	u_char outbuf[BUFSIZE];
 	u_char *buf;
-	u_long mid = 2131;
+	u_long mid = 21311;
 	u_short mtyp = 2;
 	u_short ver = 1;
 	u_long len;
 	u_long flag = 0;
-	u_long crc = 12121112;
+	u_long crc = 1212223112;
 	char mydata[] = "This is my data string\0";
 	int fd;
 	
-	len = strlen(mydata);
+	len = strlen(mydata)+4;
 	fd = ConnectTo("10.1.1.12", 1234);
 	printf("%d\n", fd);
 	if (fd < 0) {
