@@ -17,131 +17,30 @@ MODDIRECTORY = @prefix@/dl
 DATADIRECTORY = @prefix@/data
 INCDIRECTORY = @prefix@/include
 DISTDIR = @PACKAGE@-@VERSION@
-extauth_src = @EXTAUTH_SRC@
-extauth_objs = @EXTAUTH_OBJS@
 LEX    = @LEX@
 LEXLIBS = @LEXLIBS@
 YACC   = @YACC@
 
 
-NEOCFLAGS = $(CFLAGS)
-EXTRA_LDFLAGS = -Llibevent -levent
-
-PROGS = mqserver
-CONF = 
-DOCS = 
-DOCS_PROGS = 
-DATA = 
-
-OBJS = ${SRCS:.c=.o}
-SRCS =	main.c hash.c list.c log.c dotconf.c sock.c conf.c client.c dict.c
-
-INCLUDES = config.h hash.h list.h mqserver.h log.h dotconf.h dict.h
-
-BUILDFILES = configure config.sub config.guess *.in 
-
-DISTFILES = $(INCLUDES) $(COREINCS) $(SRCS) $(IRCDSRC) $(IRCDINC) \
-		$(BUILDFILES) $(DATA) $(DOCS) $(DOCS_PROGS) $(CONF)	
-
-ADNSFILES = adns/check.o adns/event.o adns/general.o adns/parse.o \
-	    adns/query.o adns/reply.o adns/setup.o adns/transmit.o adns/types.o 
-SUBDIRS = 
-DISTLIBS = 
-DISTMOD = 
-
-all: mqserver 
+all: modules 
 
 modules:
 	(cd adns; $(MAKE) $@)
 	(cd libevent; $(MAKE) libevent.a)
-
-buildversion: 
-	@(if test -f version.sh ; then $(SHELL) version.sh; else echo > version.h; fi)
-
-mqserver: buildversion modules $(OBJS)
-	$(CC) $(LDFLAGS) $(OBJS) $(EXTRA_LDFLAGS) $(ADNSFILES) -o $@
+	(cd Server; $(MAKE) mqserver)
 
 # include dependency info 
 @MAKEDEPENDENCIES@
 
-.c.o:
-	$(CC) $(NEOCFLAGS) $(NEOINCLUDES) -c $< 
-	$(CC) -MM $(NEOINCLUDES) -c $< > $*.d
-
 clean:
-	(cd dl; $(MAKE) $@)
-	$(RM) *.o neostats *.cache Makefile config.h *.log *.a *.d *.exe version.h
+	(cd adns; $(MAKE) $@)
+	(cd libevent; $(MAKE) $@)
+	(cd Server; $(MAKE) $@)
+	$(RM) *.cache Makefile Include/config.h *.log Include/version.h
 
 distclean:
 	(cd dl; $(MAKE) $@)
 	$(RM) *.o neostats *.cache Makefile config.h *.log *.a *.d *.exe config.status version.h
-
-install: neostats
-	@echo "Installing ..."
-	@$(RM) @prefix@/include/*.h
-	$(INSTALL) -m 755 -d @prefix@
-	$(INSTALL) -m 755 -d @prefix@/dl
-	$(INSTALL) -m 755 -d @prefix@/include
-	$(INSTALL) -m 755 -d @prefix@/doc
-	$(INSTALL) -m 755 -d @prefix@/data
-	$(INSTALL) -m 750 -d @prefix@/logs
-	$(INSTALL) -m 755 $(PROGS) @prefix@
-	$(INSTALL_DATA) $(CONF) @prefix@
-	$(INSTALL_DATA) $(DOCS) @prefix@/doc
-	$(INSTALL) -m 755 $(DOCS_PROGS) @prefix@/doc
-	$(INSTALL_DATA) $(DATA) @prefix@/data
-	$(INSTALL_DATA) $(INCLUDES) @prefix@/include
-	$(INSTALL_DATA) version.h @prefix@/include
-	$(INSTALL_DATA) @IRCD_FILES_INC@ @prefix@/include
-	(cd adns; $(MAKE) $@)
-	(cd sqlsrv; $(MAKE) $@)
-	(cd dl; $(MAKE) $@)
-	(cd tools; $(MAKE) $@)
-	@echo "Done."
-	@cat INSTNOTES 
-	@if test -f INSTNOTES.svn ; then cat INSTNOTES.svn ; fi 
-
-dist: 	
-	@echo -n "Creating Directories"
-	@$(RM) $(DISTDIR)
-	@echo -n "."
-	@mkdir $(DISTDIR)
-	@echo -n "."
-	@mkdir $(DISTDIR)/dl
-	@echo -n "."
-	@for subdir in $(SUBDIRS); do \
-		echo -n "."; \
-		mkdir $(DISTDIR)/$$subdir; \
-		chmod 777 $(DISTDIR)/$$subdir; \
-	done
-	@echo "Done"
-	@echo -n "Copying Core Distribution files"
-	@for file in $(DISTFILES); do \
-		echo -n "."; \
-		cp -pr $$file $(DISTDIR)/$$file; \
-	done
-	@$(RM) $(DISTDIR)/config.h
-	@$(RM) $(DISTDIR)/configure.in
-	@echo "Done"
-	@echo "Copying Library Distribution files"
-	@for subdir in $(DISTLIBS); do \
-		mkdir $(DISTDIR)/$$subdir; \
-		chmod 777 $(DISTDIR)/$$subdir; \
-		(cd $$subdir && $(MAKE) dist DISTDIR=../$(DISTDIR)/$$subdir && cd ..) || exit 1; \
-	done
-	@echo "Done"
-	@echo "Copying Tools Distribution files"
-	@(cd tools && $(MAKE) dist DISTDIR=../$(DISTDIR)/tools && cd ..) || exit 1;
-	@echo "Done"
-	@echo "Copying Module Distribution files"
-	@for mod in $(DISTMOD); do \
-		mkdir $(DISTDIR)/dl/$$mod; \
-		(cd dl/$$mod && $(MAKE) dist DISTDIR=../../$(DISTDIR)/dl/$$mod && cd ../..) || exit 1; \
-	done
-	@echo "Done"
-	@tar -czf $(DISTDIR).tar.gz $(DISTDIR)/*
-#	@$(RM) $(DISTDIR)
-	@echo "Tar file $(DISTDIR).tar.gz created. Freshmeat time!"
 
 # Catch any changes in compilation options at the top of this file
 $(OBJS): Makefile 
