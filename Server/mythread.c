@@ -152,6 +152,7 @@ int count_threads(char *name) {
 	mythreads *tid;
 	int i = 0;
 	
+	MYLOCK(&mythreadengine);
 	if (name) {
 		node = list_first(threads);
 		while (node) {
@@ -161,10 +162,13 @@ int count_threads(char *name) {
 			}
 			node = list_next(threads, node);
 		}
+		MYUNLOCK(&mythreadengine);
 		return i;
 	} else {
+		MYUNLOCK(&mythreadengine);
 		return (int) list_count(threads);
 	}
+	MYUNLOCK(&mythreadengine);
 	return 0;
 }
 

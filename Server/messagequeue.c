@@ -78,22 +78,17 @@ void *init_messqueue(void *arg) {
 		} else {
 			pthread_mutex_unlock(&messq->mutex);
 			tcprioq_get(messq->inqueue, (void *)&mqi);
-printf("Thread %d\n", pthread_self());
 			switch (mqi->type) {
 				case MQI_TYPE_NEWCLNT:
-printf("newclnt\n");
 					mq_new_client(mqi);
 					break;
 				case MQI_TYPE_DELCLNT:
-printf("delclnt\n");
 					mq_del_client(mqi);
 					break;
 				case MQI_TYPE_JOINQ:
-printf("joinq\n");
 					mq_join_queue(mqi, messq);
 					break;
 				case MQI_TYPE_MES:
-printf("msg\n");
 					mq_send_msg(mqi, messq);
 					break;
 				default:
@@ -257,6 +252,8 @@ void mq_send_msg(messqitm *mqi, myqueues *messq) {
 	hash_scan_begin(&hs, que->clients);
 	while ((node = hash_scan_next(&hs))) {
 		rcptqm = hnode_get(node);
+		/* XXX if its my own self, then we deadlock */
+/* 		MYLOCK(&rcptqm->cli->lock); */
 		/* XXX check flags to see if this client wants it including copies of his own messages */
 		
 		/* XXX check topic and filter to see if the client wants it */
@@ -278,6 +275,7 @@ void mq_send_msg(messqitm *mqi, myqueues *messq) {
 		nlog(LOG_DEBUG1, LOG_MESSQ, "MQ Sending Message from %s@%s to %s@%s on queue %s", sendcli->username, sendcli->host, rcptqm->cli->username, rcptqm->cli->host, que->name);
 		tcprioq_add(messq->outqueue, (void *)sndmqi);
 		pthread_mutex_unlock(&messq->mutex);
+/*		MYUNLOCK(&rcptqm->cli->lock); */
 	}						
 	MYUNLOCK(&que->lock);
 	MYUNLOCK(&sendcli->lock);

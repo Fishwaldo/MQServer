@@ -167,6 +167,11 @@ pck_new_connection (mqp *mqplib, int fd, int type, int contype)
 	mqpck->nxtoutmid = 1;
 	mqpck->xdsin = pck_init_engines(mqplib, type, XDS_DECODE);
 	mqpck->xdsout = pck_init_engines(mqplib, type, XDS_ENCODE);
+	mqpck->pollopts = 0;
+	mqpck->bufferlen = 0;
+	mqpck->buffer = NULL;
+	mqpck->si.username = NULL;
+	mqpck->si.password = NULL;
 	
 
 #if 0
@@ -278,9 +283,9 @@ close_fd (mqp *mqplib, mqpacket * mqp)
 	if (mqplib->logger) {
 		mqplib->logger ("Closing %d fd", mqp->sock);
 	}
+	close (mqp->sock);
 	pck_del_connection (mqplib, mqp);
 
-	close (mqp->sock);
 	return NS_SUCCESS;
 }
 
@@ -337,10 +342,13 @@ write_fd (mqp *mqplib, mqpacket * mqp)
 			mqp->outbufferlen = mqp->outoffset = 0;
 			mqp->pollopts &= ~POLLOUT;
 		} else if (i > 0) {
-			memmove (mqp->outbuffer, mqp->outbuffer + i, mqp->outoffset - i);
-			mqp->outoffset = mqp->outoffset - i;
+			memmove (mqp->outbuffer, mqp->outbuffer + i, mqp->outbufferlen - i);
+			mqp->outbufferlen -= i;
 			mqp->pollopts |= POLLOUT;
 		} else {
+			if (errno == EAGAIN) {
+				return NS_SUCCESS;
+			}
 			/* something went wrong sending the data */
 			if (mqplib->logger)
 				mqplib->logger ("Error Sending on fd %d %s", mqp->sock, strerror(errno));
@@ -351,8 +359,10 @@ write_fd (mqp *mqplib, mqpacket * mqp)
 		/* somethign went wrong encoding the data */
 		if (mqplib->logger)
 			mqplib->logger ("No Data to Send?");
+#if 0
 		close_fd (mqplib, mqp);
 		return NS_FAILURE;
+#endif
 	}
 	return NS_SUCCESS;
 }
@@ -363,7 +373,6 @@ void print_decode(mqpacket *mqp, int what) {
 	char buf2[1024];
 	int len = 0;
 	
-	return;
 	bzero(buf2, 1024);
 	switch (what) {
 		case 1:

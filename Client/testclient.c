@@ -96,11 +96,13 @@ int gotaction(int type, void *cbarg) {
 			pck_decode_message(sd, testdataentry,(sizeof(testdataentry)/sizeof(structentry)), tmp2);
 			printf("queue %s topic %s messid %d time %d from %s\n", sd->queue, sd->topic, sd->messid, sd->timestamp, sd->from);
 			printf("got %s %d %s\n", tmp2->name, tmp2->size, tmp2->testdata);
-//			tmp->size+++;
-//			pck_simple_send_message_struct(conid, &testdataentry, (sizeof(testdataentry)/sizeof(structentry)), tmp, "testqueue", "Mytopic");
+			tmp->size++;
+			pck_simple_send_message_struct(conid, &testdataentry, (sizeof(testdataentry)/sizeof(structentry)), tmp, "testqueue", "Mytopic");
 			free(tmp2->name);
 			free(tmp2);
-			candie = 1;
+			if (tmp->size == -1) {
+				candie = 1; 
+			}
 	}			
 
 }
@@ -115,7 +117,7 @@ int main() {
 	tmp = malloc(sizeof(testdata));
 	tmp->name = malloc(234);
 	snprintf(tmp->name, 234, "hello world this is my testdata name");
-	tmp->size = 5643;
+	tmp->size = 1;
 	snprintf(tmp->testdata, 255, "and this is my static string");
 	
 	printf("total size %d\n", (sizeof(testdataentry)/sizeof(structentry)));
@@ -128,6 +130,7 @@ int main() {
 			break;
 	}
 	pck_fini();
+	free(tmp->name);
 	free(tmp);
 }
 

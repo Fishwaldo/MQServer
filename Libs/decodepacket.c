@@ -46,7 +46,6 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 {
 	int rc, usedbuf;
 
-	print_decode(mqp, 1);
 	
 	/* XXX XDR engine for now */
 	if (xds_setbuffer (mqp->xdsin, XDS_LOAN, buffer, buflen) != XDS_OK) {
@@ -80,6 +79,7 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 		default:
 			if (mqplib->logger)
 				mqplib->logger ("XDS Decode of Header Failed: %d", rc);
+			print_decode(mqp, 1);
 			/* drop client */
 			return NS_FAILURE;
 	}
@@ -140,6 +140,7 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 			if (mqplib->logger)
 				mqplib->logger ("XDS Decode of Data Failed: %d", rc);
 			/* drop client */
+			print_decode(mqp, 1);
 			return NS_FAILURE;
 	}
 	if (mqp->wiretype == ENG_TYPE_XML) {
@@ -157,13 +158,13 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 				if (mqplib->logger)
 					mqplib->logger ("XDS Decode of Footer Failed: %d", rc);
 				/* drop client */
+				print_decode(mqp, 1);
 				return NS_FAILURE;
 		}
 	}
 	if (mqplib->callback) {
 		mqplib->callback((void *)mqplib, mqp);
 	}
-printf("%d\n", mqp->inmsg.MSGTYPE);
 	switch (mqp->inmsg.MSGTYPE) {
 		case PCK_ACK:
 			break;

@@ -205,7 +205,6 @@ pck_commit_data (mqp * mqplib, mqpacket * mqpck)
 			mqplib->logger ("OutBuffer is Full. %d", rc);
 		return NS_FAILURE;
 	}
-	print_decode(mqpck, 2);
 	write_fd(mqplib, mqpck);
 	rc = mqpck->outmsg.MID;
 	pck_remove(mqplib, mqpck);
@@ -231,7 +230,8 @@ pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int
 						mqplib->logger ("xds encode header failed %d.", rc);
 					return NS_FAILURE;
 				}
-				free(mydata);
+				
+/* 				free(mydata); */
 				break;
 			case STR_INT:
 				mydata = data + mystruct[i].offset;
@@ -275,7 +275,7 @@ pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int
 			mqplib->logger ("xds encode message failed %d.", rc);
 		return NS_FAILURE;
 	}
-	
+	free(buffer);
 	return (pck_commit_data(mqplib, mqpck));
 
 }
@@ -333,4 +333,3 @@ pck_send_queue_mes(mqp *mqplib, mqpacket *mqpck, char *queue, char *topic, void 
 	
 	return (pck_commit_data(mqplib, mqpck));
 }
-	

@@ -375,7 +375,6 @@ serv_segv ()
 		do_backtrace();
 		nlog (LOG_CRITICAL, LOG_CORE, "-------------------------END OF REPORT--------------------------");
 		/* flush the logs out */
-		close_logs(); 
 		longjmp (sigvbuf, -1);
 		inbacktrace = 0;
 		return;
@@ -390,7 +389,6 @@ serv_segv ()
 	do_backtrace();
 	nlog (LOG_CRITICAL, LOG_CORE, "-------------------------END OF REPORT--------------------------");
 	me.die = 1;
-	close_logs();
 	/* clean up */
 	do_exit (NS_EXIT_SEGFAULT, NULL);
 }

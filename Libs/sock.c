@@ -169,6 +169,7 @@ pck_before_poll (struct pollfd ufds[MAXCONNECTIONS])
 			//ufds = realloc (ufds, count + 1 * sizeof (struct pollfd));
 			ufds[count].fd = mqp->sock;
 			ufds[count].events = mqp->pollopts;
+			ufds[count].revents = 0;
 			count++;
 		}
 		node = list_next (connections, node);
@@ -219,7 +220,7 @@ pck_after_poll (const struct pollfd *ufds, int nfds)
 	if (nfds == 0) {
 		return NS_SUCCESS;
 	}
-	for (i = 0; i <= nfds; i++) {
+	for (i = 0; i <= (nfds-1); i++) {
 		if (sockconfig.listenfd == ufds[i].fd) {
 			pck_accept_connection (ufds[i].fd);
 			continue;
@@ -356,7 +357,7 @@ pck_accept_connection (int fd)
 	printf ("Connection on fd %d\n", l);
 		
 	mqp->pollopts |= POLLIN;
-
+	
 	node = lnode_create(mqp);
 	list_append(connections, node);
 
@@ -412,8 +413,8 @@ pck_make_connection (char *hostname, char *username, char *password, long flags,
 		}
 	}
 	mqp = pck_new_connection (sockconfig.mqplib, s, ENG_TYPE_XML, PCK_IS_SERVER);
-	mqp->si.username = malloc(strlen(username));
-	mqp->si.password = malloc(strlen(password));	
+	mqp->si.username = malloc(BUFSIZE);
+	mqp->si.password = malloc(BUFSIZE);	
 
 	snprintf(mqp->si.username, BUFSIZE, "%s", username);
 	snprintf(mqp->si.password, BUFSIZE, "%s", password);
@@ -424,8 +425,8 @@ pck_make_connection (char *hostname, char *username, char *password, long flags,
 	node = lnode_create(mqp);
 	list_append(connections, node);
 
-
 	mqp->pollopts |= POLLIN;
+	
 	pck_logger("OutGoing Connection on fd %d", s);
 	return s;
 }
