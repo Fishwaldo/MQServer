@@ -91,7 +91,7 @@ mqp *init_mqlib () {
 	
 	mqplib = malloc(sizeof(mqp));
 	mqplib->logger = NULL;
-
+	mqplib->callback = NULL;
 	mqplib->myengines = standeng;
 	return mqplib;
 }

@@ -96,6 +96,9 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 		case PCK_CLNTCAP:
 			rc = xds_decode(mqp->xdsin, PCK_SRVCAP_FMT, &mqp->inmsg.data.srvcap.srvcap1, &mqp->inmsg.data.srvcap.srvcap2, &mqp->inmsg.data.srvcap.capstr);
 			break;
+		case PCK_AUTH:
+			rc = xds_decode(mqp->xdsin, PCK_AUTH_FMT, &mqp->inmsg.data.auth.username, &mqp->inmsg.data.auth.password);
+			break;
 		default:
 			if (mqplib->logger)
 				mqplib->logger ("Invalid MsgType Recieved");

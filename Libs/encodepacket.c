@@ -163,6 +163,26 @@ unsigned long pck_send_error(mqp *mqplib, mqpacket *mqp, char *fmt, ...) {
 	return (pck_commit_data(mqplib, mqp));
 }
 
+unsigned long pck_send_auth(mqp *mqplib, mqpacket *mqp, char *username, char *password) {
+	int rc;
+	va_list ap;
+	char log_buf[BUFSIZE];
+		
+	if (pck_prepare(mqplib, mqp, PCK_AUTH) != NS_SUCCESS) {
+		return NS_FAILURE;
+	}
+
+	rc = xds_encode (mqp->xdsout, PCK_AUTH_FMT, username, password);
+
+	if (rc != XDS_OK) {
+		if (mqplib->logger)
+			mqplib->logger ("xds encode auth failed %d.", rc);
+		return NS_FAILURE;
+	}
+	
+	return (pck_commit_data(mqplib, mqp));
+}
+
 
 unsigned long
 pck_commit_data (mqp * mqplib, mqpacket * mqpck)

@@ -34,6 +34,7 @@
 #include "defines.h"
 #include "list.h"
 #include "packet.h"
+#include "sock.h"
 
 
 list_t *connections;
@@ -54,15 +55,32 @@ void pck_logger(char *fmt, ...);
 int pck_simple_callback(void *mqplib, mqpacket *mqp) {
 
 	switch (mqp->inmsg.MSGTYPE) {
+		case PCK_ACK:
+			if (MQS_S_FLAG_IS_GOTSRVCAP(mqp)) {
+				pck_logger("Got CLNTCAP ACK\n");
+				MQS_S_FLAG_SET_SENTAUTH(mqp);
+				pck_send_auth(mqplib, mqp, mqp->si.username, mqp->si.password);
+			} else if (MQS_S_FLAG_IS_SENTAUTH(mqp)) {
+				pck_logger("login Ack'd\n");
+				MQS_S_FLAG_SET_CONNECTOK(mqp);
+			}
+			break;
 		case PCK_SRVCAP:
 			pck_logger("Got ServerCap");
+			MQS_S_FLAG_SET_GOTSRVCAP(mqp);
 			pck_send_clntcap(mqplib, mqp);
 			break;
-		case PCK_CLNTCAP:
-			pck_logger("Got clntcap");
+		case PCK_ERROR:
+			if (MQS_S_FLAG_IS_GOTSRVCAP(mqp)) {
+				pck_logger("Server rejected out clientcap for %s\n", mqp->inmsg.data.string);
+				return NS_FAILURE;
+			} else if (MQS_S_FLAG_IS_SENTAUTH(mqp)) {
+				pck_logger("Server rejected out Login: %s\n", mqp->inmsg.data.string);
+				return NS_FAILURE;
+			}
 			break;
 		default:
-			pck_logger("Uknown");
+			pck_logger("Uknown msgtype recieved: %xd", mqp->inmsg.MSGTYPE);
 	}			
 
 

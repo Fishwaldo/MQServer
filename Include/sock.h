@@ -26,4 +26,19 @@
 #ifndef SOCK_H
 #define SOCK_H
 
+#define MQS_S_FLAG_GOTSRVCAP 	0x01
+#define MQS_S_FLAG_SENTAUTH	0x02
+#define MQS_S_FLAG_CONNECTOK	0x04
+
+
+#define MQS_S_FLAG_SET_GOTSRVCAP(x) (x->flags |= MQS_S_FLAG_GOTSRVCAP)
+#define MQS_S_FLAG_IS_GOTSRVCAP(x) (x->flags & MQS_S_FLAG_GOTSRVCAP)
+
+#define MQS_S_FLAG_SET_SENTAUTH(x) (x->flags = MQS_S_FLAG_SENTAUTH)
+#define MQS_S_FLAG_IS_SENTAUTH(x) (x->flags & MQS_S_FLAG_SENTAUTH)
+
+#define MQS_S_FLAG_SET_CONNECTOK(x) (x->flags = MQS_S_FLAG_CONNECTOK)
+#define MQS_S_FLAG_IS_CONNECTOK(x) (x->flags & MQS_S_FLAG_CONNECTOK)
+
+
 #endif

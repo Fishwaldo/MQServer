@@ -71,7 +71,7 @@
 #define PCK_ERROR_FMT		"string"
 #define PCK_SRVCAP_FMT		"int32 int32 string"
 #define PCK_CLNTCAP_FMT		"int32 int32 string"
-
+#define PCK_AUTH_FMT		"string string"
 
 /* packet flags, not message flags */
 #define PCK_FLG_REQUIREACK		0x01
@@ -89,6 +89,13 @@ struct mq_data_srvcap {
 	char *capstr;
 } mq_data_srvcap;
 
+struct mq_data_auth {
+	char username[BUFSIZE];
+	char password[BUFSIZE];
+	char host[BUFSIZE];
+	long flags;
+} mq_data_auth;
+
 struct message {
 	int MID;
 	int MSGTYPE;
@@ -97,17 +104,11 @@ struct message {
 	union {
 		struct mq_data_stream stream;
 		struct mq_data_srvcap srvcap;
+		struct mq_data_auth auth;
 		char *string;
 		int num;
 	} data;
 } message;	
-
-struct simpleif {
-	char username[BUFSIZE];
-	char password[BUFSIZE];
-	char host[BUFSIZE];
-	long flags;
-} simpleif;
 
 /* client protocol struct */
 typedef struct mqpacket {
@@ -116,7 +117,7 @@ typedef struct mqpacket {
 	int sock;
 	int pollopts;
 	int flags;
-	struct simpleif si;
+	struct mq_data_auth si;
 	void *cbarg;
 	void *buffer;
 	size_t bufferlen;
