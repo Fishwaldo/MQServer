@@ -133,7 +133,7 @@ int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen) {
 			/* XXX TODO Drop Client?*/
 		}			
 
-		return PCK_MIN_PACK_SIZE + mqpck->LEN;
+		return PCK_MIN_PACK_SIZE + gotdatasize;
 	} else {
 		/* XXX got additional data for previous message */
 	}
