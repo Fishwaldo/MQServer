@@ -95,6 +95,7 @@ libevent/test/test-init.c -text
 libevent/test/test-time.c -text
 libevent/test/test-weof.c -text
 libevent/test/test.sh -text
+/mqprotocol.txt -text
 /mqserver.cfg -text
 sqlite/Makefile.in -text
 sqlite/Makefile.linux-gcc -text
