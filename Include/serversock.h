@@ -131,5 +131,7 @@ typedef struct mqsock {
 
 void MQS_sock_start ();
 extern mqsock *find_con_by_id(int id);
+void MQS_remove_client(mqsock *mqs);
+void got_dns(mqsock *mqs);
 
 #endif

@@ -405,14 +405,27 @@ pck_make_connection (char *hostname, char *username, char *password, long flags,
 	return s;
 }
 
-
-int pck_simple_send_message_struct(int conid, structentry *mystruct, int cols, void *data, char *destination) {
+unsigned long
+pck_simple_send_message_struct(int conid, structentry *mystruct, int cols, void *data, char *destination) {
 	lnode_t *node;
 	mqpacket *mqp;
 
 	node = pck_find_fd_node(conid, connections);
 	if (node) {
 		mqp = lnode_get(node);
-		pck_send_message_struct(sockconfig.mqplib, mqp, mystruct, cols, data, destination);
+		return(pck_send_message_struct(sockconfig.mqplib, mqp, mystruct, cols, data, destination));
 	}
+	return NS_FAILURE;
+}
+unsigned long
+pck_simple_joinqueue(int conid, char *queue, int flags) {
+	lnode_t *node;
+	mqpacket *mqp;
+
+	node = pck_find_fd_node(conid, connections);
+	if (node) {
+		mqp = lnode_get(node);
+		return (pck_send_joinqueue(sockconfig.mqplib, mqp, queue, flags));
+	}
+	return NS_FAILURE;
 }

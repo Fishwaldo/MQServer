@@ -32,6 +32,7 @@
 #include "packet.h"
 #include "adns.h"
 #include "mythread.h"
+#include "queuemanager.h"
 
 list_t *mq_clients;
 mylocks mq_clientslock;
@@ -43,5 +44,9 @@ typedef struct mqclient {
 	char username[MAXNICK];
 	char host[MAXHOST];
 } mqclient;
+
+void mq_new_client(messqitm *mqi);
+void mq_del_client(messqitm *mqi);
+
 
 #endif

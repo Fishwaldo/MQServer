@@ -67,12 +67,13 @@
 #define PCK_MSGFROMCLNT		19
 
 /* format strings */
-#define PCK_ACK_FMT		"int32"
+#define PCK_ACK_FMT		"int32 "
 #define PCK_ERROR_FMT		"string"
 #define PCK_SRVCAP_FMT		"int32 int32 string"
 #define PCK_CLNTCAP_FMT		"int32 int32 string"
 #define PCK_AUTH_FMT		"string string"
 
+#define PCK_JOINQUEUE_FMT	"string int32"
 #define PCK_SENDTOQUEUE_FMT	"string int32 octet"
 
 /* packet flags, not message flags */
@@ -100,6 +101,11 @@ struct mq_data_auth {
 	long flags;
 } mq_data_auth;
 
+struct mq_data_joinqueue {
+	char *queue;
+	long flags;
+} mq_data_joinqueue;
+
 struct message {
 	int MID;
 	int MSGTYPE;
@@ -109,6 +115,7 @@ struct message {
 		struct mq_data_stream stream;
 		struct mq_data_srvcap srvcap;
 		struct mq_data_auth auth;
+		struct mq_data_joinqueue joinqueue;
 		char *string;
 		int num;
 	} data;
@@ -188,19 +195,23 @@ int write_fd (mqp *mqplib, mqpacket * mqp);
 mqpacket * pck_new_connection (mqp *mqplib, int fd, int type, int contype);
 void print_decode(mqpacket *, int what);
 int pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long buflen);
-unsigned long send_ack(mqp *mqplib, mqpacket *mqp, int MID);
-int pck_send_message_struct(mqp *mqplib, mqpacket *mqp, structentry *mystruct, int cols, void *data, char *destination);
-
-typedef int (actioncbfunc)(int, void *);
+unsigned long pck_send_ack(mqp *mqplib, mqpacket *mqp, int MID);
+unsigned long pck_send_error(mqp *mqplib, mqpacket *mqp, char *fmt, ...);
+unsigned long pck_send_message_struct(mqp *mqplib, mqpacket *mqp, structentry *mystruct, int cols, void *data, char *destination);
+unsigned long pck_send_joinqueue(mqp *mqplib, mqpacket *mqpck, char *queue, int flags);
+unsigned long pck_send_srvcap(mqp *mqplib, mqpacket *mqp);
+unsigned long pck_send_auth(mqp *mqplib, mqpacket *mqp, char *username, char *password);
+unsigned long pck_send_clntcap(mqp *mqplib, mqpacket *mqp);
 
 /* this is the standalone un-threadsafe interface */
+typedef int (actioncbfunc)(int, void *);
 int init_socket(actioncbfunc *);
 int debug_socket(int i);
 int enable_server(int port);
 int pck_process ();
 int pck_make_connection (char *hostname, char *, char *, long , void *cbarg, actioncbfunc *);
-int pck_simple_send_message_struct(int conid, structentry *mystruct, int cols, void *data, char *destination);
-
+unsigned long pck_simple_send_message_struct(int conid, structentry *mystruct, int cols, void *data, char *destination);
+unsigned long pck_simple_joinqueue(int conid, char *queue, int flags);
 
 /* these are error defines */
 #define PCK_ERR_BUFFULL		1

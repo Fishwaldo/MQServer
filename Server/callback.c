@@ -60,6 +60,9 @@ int MQS_Callback(void *mqplib, mqpacket *mqp) {
 			nlog(LOG_DEBUG1, LOG_CORE, "Got Messgae from Client on fd %d for queue %s (datasize %d msgsize %d)", mqp->sock, mqp->inmsg.data.stream.queue, mqp->inmsg.data.stream.datalen, mqp->inmsg.data.stream.len);
 			
 			break;
+		case PCK_JOINQUEUE:
+			nlog(LOG_DEBUG1, LOG_CORE, "Got JoinQueue Request from Client on fd %d for queue %s (flags %ld)", mqp->sock, mqp->inmsg.data.joinqueue.queue, mqp->inmsg.data.joinqueue.flags);
+			break;
 		default:
 			nlog(LOG_WARNING, LOG_CORE, "Got Unhandled Msgtype on fd %d", mqp->sock);
 			return NS_FAILURE;

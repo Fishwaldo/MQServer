@@ -79,6 +79,7 @@ void *readstr(void *data, size_t *size) {
 int gotaction(int type, void *cbarg) {
 	switch (type) {
 		case PCK_SMP_LOGINOK:
+			pck_simple_joinqueue(conid, "testqueue", 0);
 			pck_simple_send_message_struct(conid, &testdataentry, (sizeof(testdataentry)/sizeof(structentry)), tmp, "testqueue");
 			break;
 	}			

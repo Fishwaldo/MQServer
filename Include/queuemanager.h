@@ -26,6 +26,7 @@
 #ifndef QUEUEMANAGER_H
 #define QUEUEMANAGER_H
 #include "tcprioq.h"
+#include "serversock.h"
 
 #define AUTHQSIZE    20
 #define MESSQSIZE    100
@@ -74,8 +75,11 @@ typedef struct messqitm {
 
 
 extern int queueman_init();
-extern int newauthqitm(mqsock *mqs, char *username, char *password, int mid);
-extern int check_authq();
-extern int check_messq();
 extern int qm_wait(myqueues *qi, int tmout);
+extern int qm_newclnt(mqsock *mqs, authqitm *aqi);
+extern int qm_delclnt(mqsock *mqs);
+extern int qm_check_authq();
+extern int qm_check_messq();
+extern int qm_newauthqitm(mqsock *mqs, char *username, char *password, int mid);
+
 #endif

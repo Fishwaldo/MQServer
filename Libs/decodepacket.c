@@ -45,7 +45,6 @@ int
 pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long buflen)
 {
 	int rc, usedbuf;
-	char auth[1024], *auth2;
 
 	print_decode(mqp, 1);
 	
@@ -58,7 +57,11 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 	}
 	/* lets use a switch here to handle it intelegently */
 
-	rc = xds_decode (mqp->xdsin, "xmlstart mqpheader", mqp);
+	if (mqp->wiretype == ENG_TYPE_XML) {
+		rc = xds_decode (mqp->xdsin, "xmlstart mqpheader", mqp);
+	} else {
+		rc = xds_decode (mqp->xdsin, "mqpheader", mqp);
+	}
 	switch (rc) {
 		case XDS_OK:
 			usedbuf = xds_get_usedbuffer (mqp->xdsin);
@@ -103,6 +106,9 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 		case PCK_SENDTOQUEUE:
 			rc = xds_decode(mqp->xdsin, PCK_SENDTOQUEUE_FMT, &mqp->inmsg.data.stream.queue, &mqp->inmsg.data.stream.len, &mqp->inmsg.data.stream.data, &mqp->inmsg.data.stream.datalen);
 			break;
+		case PCK_JOINQUEUE:
+			rc = xds_decode(mqp->xdsin, PCK_JOINQUEUE_FMT, &mqp->inmsg.data.joinqueue.queue, &mqp->inmsg.data.joinqueue.flags);
+			break;
 		default:
 			if (mqplib->logger)
 				mqplib->logger ("Invalid MsgType Recieved");
@@ -123,6 +129,24 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 				mqplib->logger ("XDS Decode of Data Failed: %d", rc);
 			/* drop client */
 			return NS_FAILURE;
+	}
+	if (mqp->wiretype == ENG_TYPE_XML) {
+		rc = xds_decode (mqp->xdsin, "xmlstop", mqp);
+		switch (rc) {
+			case XDS_OK:
+				usedbuf = xds_get_usedbuffer (mqp->xdsin);
+				break;
+			case XDS_ERR_UNDERFLOW:
+				if (mqplib->logger)
+					mqplib->logger ("XDS Decode of Header Failed. Buffer Underflow");
+				/* don't consume any buffer */
+				return NS_SUCCESS;
+			default:
+				if (mqplib->logger)
+					mqplib->logger ("XDS Decode of Header Failed: %d", rc);
+				/* drop client */
+				return NS_FAILURE;
+		}
 	}
 	if (mqplib->callback) {
 		mqplib->callback((void *)mqplib, mqp);

@@ -53,7 +53,11 @@ int pck_prepare(mqp *mqplib, mqpacket *mqp, int type) {
 		mqp->outmsg.VERSION = 1;
 		mqp->outmsg.MSGTYPE = type;
 		mqp->outmsg.flags = 9;
-		rc = xds_encode (mqp->xdsout, "xmlstart mqpheader", mqp);
+		if (mqp->wiretype == ENG_TYPE_XML) {
+			rc = xds_encode (mqp->xdsout, "xmlstart mqpheader", mqp);
+		} else {
+			rc = xds_encode (mqp->xdsout, "mqpheader", mqp);
+		}
 		if (rc != XDS_OK) {
 			if (mqplib->logger)
 				mqplib->logger ("xds encode header failed %d.", rc);
@@ -186,6 +190,15 @@ pck_commit_data (mqp * mqplib, mqpacket * mqpck)
 {
 	int rc;
 
+	if (mqpck->wiretype == ENG_TYPE_XML) {
+		rc = xds_encode (mqpck->xdsout, "xmlstop");
+
+		if (rc != XDS_OK) {
+			if (mqplib->logger)
+				mqplib->logger ("xds encode xmlstop failed %d.", rc);
+			return NS_FAILURE;
+		}
+	}
 	rc = xds_getbuffer (mqpck->xdsout, XDS_GIFT, (void **) &mqpck->outbuffer, &mqpck->outbufferlen) ;
 	if (rc != XDS_OK) {
 		if (mqplib->logger)
@@ -200,21 +213,18 @@ pck_commit_data (mqp * mqplib, mqpacket * mqpck)
 }
 
 
-int 
+unsigned long 
 pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int cols, void *data, char *destination) {
 	int rc, i, myint;
 	void *mydata;
-	char *string;
 	void *buffer;
 	size_t bufferlen;
 
 
 	for (i = 0; i < cols; i++) {
-		printf("%d Column Type: %d, size %d, offset %d\n", i, mystruct[i].type, mystruct[i].size, mystruct[i].offset);
 		switch(mystruct[i].type) {
 			case STR_PSTR:
 				mydata = (mystruct[i].readcb)(data, &rc);
-				printf("Size: %d, Data %s\n", rc, (char *)mydata);
 				rc = xds_encode (mqpck->xdsout, "string", mydata);
 				if (rc != XDS_OK) {
 					if (mqplib->logger)
@@ -225,7 +235,6 @@ pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int
 			case STR_INT:
 				mydata = data + mystruct[i].offset;
 				myint = *(int *)mydata;
-				printf("int is %d\n", myint);
 				rc = xds_encode (mqpck->xdsout, "int32", myint);
 				if (rc != XDS_OK) {
 					if (mqplib->logger)
@@ -240,7 +249,6 @@ pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int
 						mqplib->logger ("String In Column %d is too long (%d > %d). Not Encoding", i, strlen(mydata), mystruct[i].size);
 					break;
 				}
-				printf("String is %s\n", (char *)mydata);
 				rc = xds_encode (mqpck->xdsout, "string", (char *)mydata);
 				if (rc != XDS_OK) {
 					if (mqplib->logger)
@@ -269,4 +277,22 @@ pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int
 	
 	return (pck_commit_data(mqplib, mqpck));
 
+}
+
+unsigned long
+pck_send_joinqueue(mqp *mqplib, mqpacket *mqpck, char *queue, int flags) {
+	int rc;
+		
+	if (pck_prepare(mqplib, mqpck, PCK_JOINQUEUE) != NS_SUCCESS) {
+		return NS_FAILURE;
+	}
+	rc = xds_encode (mqpck->xdsout, PCK_JOINQUEUE_FMT, queue, flags);
+
+	if (rc != XDS_OK) {
+		if (mqplib->logger)
+			mqplib->logger ("xds encode joinqueue failed %d.", rc);
+		return NS_FAILURE;
+	}
+	
+	return (pck_commit_data(mqplib, mqpck));
 }
