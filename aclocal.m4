@@ -833,6 +833,45 @@ AC_CONFIG_COMMANDS_PRE(
 Usually this means the macro was only invoked conditionally.])
 fi])])
 
+# Add --enable-maintainer-mode option to configure.
+# From Jim Meyering
+
+# Copyright 1996, 1998, 2000, 2001, 2002  Free Software Foundation, Inc.
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2, or (at your option)
+# any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+# 02111-1307, USA.
+
+# serial 2
+
+AC_DEFUN([AM_MAINTAINER_MODE],
+[AC_MSG_CHECKING([whether to enable maintainer-specific portions of Makefiles])
+  dnl maintainer-mode is disabled by default
+  AC_ARG_ENABLE(maintainer-mode,
+[  --enable-maintainer-mode enable make rules and dependencies not useful
+                          (and sometimes confusing) to the casual installer],
+      USE_MAINTAINER_MODE=$enableval,
+      USE_MAINTAINER_MODE=no)
+  AC_MSG_RESULT([$USE_MAINTAINER_MODE])
+  AM_CONDITIONAL(MAINTAINER_MODE, [test $USE_MAINTAINER_MODE = yes])
+  MAINT=$MAINTAINER_MODE_TRUE
+  AC_SUBST(MAINT)dnl
+]
+)
+
+AU_DEFUN([jm_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
+
 # libtool.m4 - Configure libtool for the host system. -*-Autoconf-*-
 
 # serial 47 AC_PROG_LIBTOOL
@@ -6708,6 +6747,32 @@ done
 SED=$lt_cv_path_SED
 ])
 AC_MSG_RESULT([$SED])
+])
+
+dnl @* AX_MAINTAINER_MODE_AUTO_SILENT
+dnl
+dnl Set autotools to error/sleep settings so that they are not run when
+dnl being errornously triggered. Likewise make libtool-silent when 
+dnl libtool has been used.
+dnl
+dnl I am using the macro quite a lot since some automake versions had the
+dnl tendency to try to rerun some autotools on a mere make even when not
+dnl quite in --maintainer-mode. That is very annoying. Likewise, a user
+dnl who installs from source does not want to see doubled compiler messages.
+dnl
+dnl I did not put an AC-REQUIRE(MAINTAINER_MODE) in here - should I?
+dnl
+dnl @: guidod@gmx.de
+dnl @$Id$
+
+AC_DEFUN([AX_MAINTAINER_MODE_AUTO_SILENT],
+[AC_MSG_CHECKING(silent building of source files)
+   if test ".$LIBTOOL" != "." ; then
+      LIBTOOL="$LIBTOOL --quiet"
+      AC_MSG_RESULT([Enabled])
+   else
+      AC_MSG_RESULT([Disabled])
+   fi
 ])
 
 dnl ##

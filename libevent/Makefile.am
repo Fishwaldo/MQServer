@@ -1,7 +1,7 @@
 AUTOMAKE_OPTIONS = foreign no-dependencies
 
 CFLAGS = -Wall @CFLAGS@
-SUBDIRS = . sample test
+SUBDIRS = .
 
 EXTRA_DIST = acconfig.h err.c event.h evsignal.h event.3 kqueue.c \
 	epoll_sub.c epoll.c select.c rtsig.c poll.c signal.c \

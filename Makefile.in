@@ -18,7 +18,6 @@ srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
-pkglibdir = $(libdir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
 top_builddir = .
 
@@ -36,6 +35,8 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 host_triplet = @host@
+
+pkglibdir = $(prefix)/modules
 ACLOCAL = @ACLOCAL@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
@@ -75,6 +76,9 @@ LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
+MAINT = @MAINT@
+MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
+MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
@@ -108,7 +112,7 @@ build_alias = @build_alias@
 build_cpu = @build_cpu@
 build_os = @build_os@
 build_vendor = @build_vendor@
-datadir = @datadir@
+datadir = $(prefix)/data
 exec_prefix = @exec_prefix@
 have_64_bit_support = @have_64_bit_support@
 host = @host@
@@ -139,8 +143,11 @@ xds_uint32_t = @xds_uint32_t@
 xds_uint64_t = @xds_uint64_t@
 xds_uint8_t = @xds_uint8_t@
 AUTOMAKE_OPTIONS = foreign
-SUBDIRS = Libs
+SUBDIRS = Libs libevent
 ACLOCAL_AMFLAGS = -I .
+LINK = @echo "Linking $@"; $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+        $(AM_LDFLAGS) $(LDFLAGS) -o $@
+
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -154,28 +161,29 @@ RECURSIVE_TARGETS = info-recursive dvi-recursive pdf-recursive \
 	installdirs-recursive install-recursive uninstall-recursive \
 	check-recursive installcheck-recursive
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/configure \
-	./Include/config.h.in Makefile.am aclocal.m4 config.guess \
-	config.sub configure configure.in depcomp install-sh ltmain.sh \
-	missing mkinstalldirs
+	$(top_srcdir)/rules.mk ./Include/config.h.in Makefile.am \
+	aclocal.m4 config.guess config.sub configure configure.in \
+	depcomp install-sh ltmain.sh missing mkinstalldirs
 DIST_SUBDIRS = $(SUBDIRS)
 all: all-recursive
 
 .SUFFIXES:
+.SUFFIXES: .c .lo .o .obj
 
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno
-$(srcdir)/Makefile.in:  Makefile.am  $(top_srcdir)/configure.in $(ACLOCAL_M4)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ Makefile.am $(top_srcdir)/rules.mk $(top_srcdir)/configure.in $(ACLOCAL_M4)
 	cd $(top_srcdir) && \
 	  $(AUTOMAKE) --foreign  Makefile
-Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
+Makefile: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.in  $(top_builddir)/config.status
 	cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__depfiles_maybe)
 
 $(top_builddir)/config.status: $(srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
-$(srcdir)/configure:  $(srcdir)/configure.in $(ACLOCAL_M4) $(CONFIGURE_DEPENDENCIES)
+$(srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(srcdir)/configure.in $(ACLOCAL_M4) $(CONFIGURE_DEPENDENCIES)
 	cd $(srcdir) && $(AUTOCONF)
 
-$(ACLOCAL_M4):  configure.in subdirconfig.m4 xds.m4
+$(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ configure.in ax_maintainer_mode_auto_silent.m4 subdirconfig.m4 xds.m4
 	cd $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 
 Include/config.h: Include/stamp-h1
@@ -188,7 +196,7 @@ Include/stamp-h1: $(srcdir)/./Include/config.h.in $(top_builddir)/config.status
 	@rm -f Include/stamp-h1
 	cd $(top_builddir) && $(SHELL) ./config.status Include/config.h
 
-$(srcdir)/./Include/config.h.in:  $(top_srcdir)/configure.in $(ACLOCAL_M4) 
+$(srcdir)/./Include/config.h.in: @MAINTAINER_MODE_TRUE@ $(top_srcdir)/configure.in $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOHEADER)
 	touch $(srcdir)/./Include/config.h.in
 
@@ -556,6 +564,53 @@ uninstall-info: uninstall-info-recursive
 	tags-recursive uninstall uninstall-am uninstall-info-am \
 	uninstall-info-recursive uninstall-recursive
 
+
+.c.o:
+			@echo "Building $@"
+@am__fastdepCC_TRUE@	@if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	@source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
+
+.c.obj:
+			@echo "Building $@"
+@am__fastdepCC_TRUE@	@if $(LTCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o $@ `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	@source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LTCOMPILE) -c `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`
+
+.c.lo:
+			@echo "Building $@"
+@am__fastdepCC_TRUE@	@if $(LTCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Plo"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	@source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/$*.Plo' tmpdepfile='$(DEPDIR)/$*.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<
+
+install-pkglibLTLIBRARIES: $(pkglib_LTLIBRARIES)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(pkglibdir)
+	@list='ls .libs/*.so'; for p in $$list; do \
+	  if test -f $$p; then \
+	    f="`echo $$p | sed -e 's|^.*/||'`"; \
+	    echo " $(LIBTOOL) --mode=install $(pkglibLTLIBRARIES_INSTALL) $(INSTALL_STRIP_FLAG) $$p $(DESTDIR)$(pkglibdir)/$$f"; \
+	    $(LIBTOOL) --mode=install $(pkglibLTLIBRARIES_INSTALL) $(INSTALL_STRIP_FLAG) $$p $(DESTDIR)$(pkglibdir)/$$f; \
+	  else :; fi; \
+	done
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

@@ -58,6 +58,7 @@ adns/setup.c -text
 adns/transmit.c -text
 adns/tvarith.h -text
 adns/types.c -text
+/ax_maintainer_mode_auto_silent.m4 -text
 /config.guess -text
 /config.sub -text
 /configure -text
