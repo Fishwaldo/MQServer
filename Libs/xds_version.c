@@ -11,14 +11,14 @@
 #define XDS_VERSION 0x009200
 
 typedef struct {
-    const int   v_hex;
-    const char *v_short;
-    const char *v_long;
-    const char *v_tex;
-    const char *v_gnu;
-    const char *v_web;
-    const char *v_sccs;
-    const char *v_rcs;
+	const int v_hex;
+	const char *v_short;
+	const char *v_long;
+	const char *v_tex;
+	const char *v_gnu;
+	const char *v_web;
+	const char *v_sccs;
+	const char *v_rcs;
 } xds_version_t;
 
 extern xds_version_t xds_version;
@@ -32,15 +32,14 @@ extern xds_version_t xds_version;
 #undef  _XDS_VERSION_C_AS_HEADER_
 
 xds_version_t xds_version = {
-    0x009200,
-    "0.9.0",
-    "0.9.0 (17-Feb-2003)",
-    "This is OSSP xds, Version 0.9.0 (17-Feb-2003)",
-    "OSSP xds 0.9.0 (17-Feb-2003)",
-    "OSSP xds/0.9.0",
-    "@(#)OSSP xds 0.9.0 (17-Feb-2003)",
-    "$Id: OSSP xds 0.9.0 (17-Feb-2003) $"
+	0x009200,
+	"0.9.0",
+	"0.9.0 (17-Feb-2003)",
+	"This is OSSP xds, Version 0.9.0 (17-Feb-2003)",
+	"OSSP xds 0.9.0 (17-Feb-2003)",
+	"OSSP xds/0.9.0",
+	"@(#)OSSP xds 0.9.0 (17-Feb-2003)",
+	"$Id: OSSP xds 0.9.0 (17-Feb-2003) $"
 };
 
 #endif /* _XDS_VERSION_C_AS_HEADER_ */
-

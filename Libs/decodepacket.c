@@ -33,7 +33,7 @@
 
 /* needed for crc32 function */
 #include <zlib.h>
-                     
+
 #include "defines.h"
 #include "list.h"
 #include "packet.h"
@@ -42,68 +42,70 @@
 
 
 /* this is called from the socket recv code. */
-int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen) {
+int
+pck_parse_packet (mqprotocol * mqp, u_char * buffer, unsigned long buflen)
+{
 	mqpacket *mqpck;
 	int rc;
 
 	if (mqp->wtforinpack == 1) {
 		/* XXX XDR engine for now */
-		pck_create_mqpacket(mqpck, ENG_TYPE_XDR, XDS_DECODE);
+		pck_create_mqpacket (mqpck, ENG_TYPE_XDR, XDS_DECODE);
 		if (mqpck == NULL) {
 			/* XXX drop client ? */
 			return NS_FAILURE;
 		}
-		if (xds_setbuffer(mqpck->xds, XDS_LOAN, buffer, buflen) != XDS_OK) {
-			if (mqpconfig.logger) 
-				mqpconfig.logger("XDS Decode of Header Failed");
-			pck_destroy_mqpacket(mqpck, NULL);
+		if (xds_setbuffer (mqpck->xds, XDS_LOAN, buffer, buflen) != XDS_OK) {
+			if (mqpconfig.logger)
+				mqpconfig.logger ("XDS Decode of Header Failed");
+			pck_destroy_mqpacket (mqpck, NULL);
 			/* XXX drop client ? */
 			return NS_FAILURE;
-		}			
+		}
 		/* lets use a switch here to handle it intelegently */
-		rc = xds_decode(mqpck->xds, "mqpheader", &mqpck);
+		rc = xds_decode (mqpck->xds, "mqpheader", &mqpck);
 		switch (rc) {
-			case XDS_OK:
-				break;
-			case XDS_ERR_UNDERFLOW:
-				if (mqpconfig.logger) 
-					mqpconfig.logger("XDS Decode of Header Failed. Buffer Underflow");
-				pck_destroy_mqpacket(mqpck, NULL);
-				/* don't consume any buffer */
-				return NS_SUCCESS; 
-			default:
-				if (mqpconfig.logger) 
-					mqpconfig.logger("XDS Decode of Header Failed: %d", rc);
-				pck_destroy_mqpacket(mqpck, NULL);
-				/* drop client */
-				return NS_FAILURE; 
-		}		
-		if (mqpconfig.logger) 
-			mqpconfig.logger("Got Packet Decode: mid %lu msgtype %d Version %d flags %lu ", mqpck->MID, mqpck->MSGTYPE, mqpck->VERSION, mqpck->flags);
-		
+		case XDS_OK:
+			break;
+		case XDS_ERR_UNDERFLOW:
+			if (mqpconfig.logger)
+				mqpconfig.logger ("XDS Decode of Header Failed. Buffer Underflow");
+			pck_destroy_mqpacket (mqpck, NULL);
+			/* don't consume any buffer */
+			return NS_SUCCESS;
+		default:
+			if (mqpconfig.logger)
+				mqpconfig.logger ("XDS Decode of Header Failed: %d", rc);
+			pck_destroy_mqpacket (mqpck, NULL);
+			/* drop client */
+			return NS_FAILURE;
+		}
+		if (mqpconfig.logger)
+			mqpconfig.logger ("Got Packet Decode: mid %lu msgtype %d Version %d flags %lu ", mqpck->MID, mqpck->MSGTYPE, mqpck->VERSION, mqpck->flags);
+
 		/* check the version number */
 		if (mqpck->VERSION != 1) {
-			if (mqpconfig.logger) 
-				mqpconfig.logger("Invalid Protocol Version recieved");
-			pck_destroy_mqpacket(mqpck, NULL);
+			if (mqpconfig.logger)
+				mqpconfig.logger ("Invalid Protocol Version recieved");
+			pck_destroy_mqpacket (mqpck, NULL);
 			/* XXX drop client ? */
 			return NS_FAILURE;
 		}
-		/* ok, lets handle this message based on the message type */	
+		/* ok, lets handle this message based on the message type */
 		switch (mqpck->MSGTYPE) {
-		
-		
-			default:
-				if (mqpconfig.logger) 
-					mqpconfig.logger("Invalid MsgType Recieved");
-				pck_destroy_mqpacket(mqpck, NULL);
-				/* XXX drop client */
-				return NS_FAILURE;
+
+
+		default:
+			if (mqpconfig.logger)
+				mqpconfig.logger ("Invalid MsgType Recieved");
+			pck_destroy_mqpacket (mqpck, NULL);
+			/* XXX drop client */
+			return NS_FAILURE;
 		}
 		/* finished processing the message. grab what buffer we consumed and return */
-									
-		rc = xds_get_usedbuffer(mqpck->xds);	
-		pck_destroy_mqpacket(mqpck, NULL);
+
+		rc = xds_get_usedbuffer (mqpck->xds);
+		pck_destroy_mqpacket (mqpck, NULL);
 		return rc;
 	}
 
@@ -111,9 +113,11 @@ int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen) {
 	return 0;
 }
 
-void pck_send_err(mqprotocol *mqp, int err, const char *msg) {
+void
+pck_send_err (mqprotocol * mqp, int err, const char *msg)
+{
 
-	if (mqpconfig.logger) 
-		mqpconfig.logger("pck_send_error: %s", msg);
+	if (mqpconfig.logger)
+		mqpconfig.logger ("pck_send_error: %s", msg);
 
 }

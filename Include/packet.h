@@ -46,6 +46,10 @@
 
 list_t *connections;
 
+
+#define MQP_CLIENTAUTHED 0x01;
+
+
 /* client protocol struct */
 typedef struct mqprotocol {
 	list_t *inpack;
@@ -55,7 +59,8 @@ typedef struct mqprotocol {
 	int wtforinpack;
 	int servorclnt;
 	int sock;
-	int pollfdopts;
+	int pollopts;
+	int flags;
 	void *cbarg;
 	void *buffer;
 	size_t bufferlen;
@@ -66,9 +71,14 @@ typedef struct mqprotocol {
 } mqprotocol;	
 
 typedef void (logfunc)(char *fmt, ...)  __attribute__((format(printf,1,2))); /* 3=format 4=params */
+typedef int (connectauthfunc)(int fd, struct sockaddr_in);
 
 struct mqpconfig {
 	logfunc *logger;
+	connectauthfunc *connectauth;
+	int server;
+	int port;
+	int listenfd;
 } mqpconfig; 	 
 
 /* server or client or repl flags mqprotocol->servorclnt */
