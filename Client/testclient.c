@@ -41,10 +41,9 @@ int main() {
 	init_socket();
 	debug_socket(1);
 
-	pck_make_connection("localhost", "fish", "haha", 0, NULL);
+	pck_make_connection("snoopy", "fish", "haha", 0, NULL);
 	while (rc == 1) {
 		rc = pck_process();
-		printf("%d\n", rc);
 		sleep(1);
 	}
 }

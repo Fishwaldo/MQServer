@@ -72,8 +72,10 @@ void MQS_client_activity(int fd, short eventtype, void *arg) {
 	
 	SET_SEGV_LOCATION();
 	if (eventtype == EV_READ) {
+		MQS_Logger("Reading %d for Data", fd);
 		rc = read_fd(mqssetup.mqplib, mqs->mqp);
 	} else if (eventtype == EV_WRITE) {
+		MQS_Logger("Writting %d for Data", fd);
 		rc = write_fd(mqssetup.mqplib, mqs->mqp);
 	}
 	if (rc == NS_FAILURE) {
@@ -127,28 +129,31 @@ void MQS_listen_accept(int fd, short eventtype, void *arg) {
 	/* start DNS lookup */
 	do_reverse_lookup(newmqs);
 
-	if (MQC_IS_TYPE_CLIENT_XDR(newmqs)) {
-		newmqs->mqp = pck_new_connection(mqssetup.mqplib, newmqs->data.fd, ENG_TYPE_XDR, PCK_IS_CLIENT);
-		event_set(&newmqs->ev, l, EV_READ|EV_PERSIST, MQS_client_activity, newmqs);
-		event_add(&newmqs->ev, NULL);	
-		newmqs->node = lnode_create(newmqs);
-  		list_append(mqssetup.connections, newmqs->node);
-	} else if (MQC_IS_TYPE_CLIENT_XML(newmqs)) {
-		newmqs->mqp = pck_new_connection(mqssetup.mqplib, newmqs->data.fd, ENG_TYPE_XML, PCK_IS_CLIENT);
-		event_set(&newmqs->ev, l, EV_READ|EV_PERSIST, MQS_client_activity, newmqs);
-		event_add(&newmqs->ev, NULL);	
-		newmqs->node = lnode_create(newmqs);
-  		list_append(mqssetup.connections, newmqs->node);
-	} else if (MQC_IS_TYPE_ADMIN(newmqs)) {
+}
+
+
+void got_dns(mqsock *mqs) {
+	if (MQC_IS_TYPE_CLIENT_XDR(mqs)) {
+		mqs->mqp = pck_new_connection(mqssetup.mqplib, mqs->data.fd, ENG_TYPE_XDR, PCK_IS_CLIENT);
+		event_set(&mqs->ev, mqs->data.fd, EV_READ|EV_PERSIST, MQS_client_activity, mqs);
+		event_add(&mqs->ev, NULL);	
+		mqs->node = lnode_create(mqs);
+  		list_append(mqssetup.connections, mqs->node);
+	} else if (MQC_IS_TYPE_CLIENT_XML(mqs)) {
+		mqs->mqp = pck_new_connection(mqssetup.mqplib, mqs->data.fd, ENG_TYPE_XML, PCK_IS_CLIENT);
+		event_set(&mqs->ev, mqs->data.fd, EV_READ|EV_PERSIST, MQS_client_activity, mqs);
+		event_add(&mqs->ev, NULL);	
+		mqs->node = lnode_create(mqs);
+  		list_append(mqssetup.connections, mqs->node);
+	} else if (MQC_IS_TYPE_ADMIN(mqs)) {
 		/* XXX Admin thread needs to signal when finished */
-		spawn_admin_thread(newmqs);
-		newmqs->node = lnode_create(newmqs);
-  		list_append(mqssetup.connections, newmqs->node);
+		spawn_admin_thread(mqs);
+		mqs->node = lnode_create(mqs);
+  		list_append(mqssetup.connections, mqs->node);
 	} else {
 		printf("this is fubar\n");
 	}
 }
-
 
 
 /** @brief main recv loop
@@ -160,6 +165,9 @@ void MQS_listen_accept(int fd, short eventtype, void *arg) {
 void
 MQS_sock_start ()
 {
+	
+	struct event dnstimeout;
+	struct timeval tv;
 	
 	SET_SEGV_LOCATION();
 
@@ -181,10 +189,17 @@ MQS_sock_start ()
 		do_exit(NS_EXIT_ERROR, "Can't create Admin Port");
 		return;
 	}
+	
+	/* setup DNS to run every so often */
+	/* XXX hook adns into fd functions rather than a timeout */
+	evtimer_set(&dnstimeout, check_dns, &dnstimeout);
+	timerclear(&tv);
+	tv.tv_sec = 1;	
+	event_add(&dnstimeout, &tv);
+	
+	/* Here is our network main loop */
 	while (1) {
 		SET_SEGV_LOCATION();
-
-		setup_dns_socks();
 
 		event_loop(EVLOOP_ONCE);
 		if (me.die) {

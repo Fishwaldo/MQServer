@@ -32,6 +32,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "config.h"
+#include "event.h"
 #include "defines.h"
 #include "log.h"
 #include "adns.h"
@@ -81,10 +82,16 @@ list_t *dnsqueue;
 void dns_check_queue();
 
 
-void setup_dns_socks() {
+void check_dns(int fd, short event, void *arg) {
+	struct event *ev = arg;
+	struct timeval tv;
+	
 	/* acutally it would be better to use the select/poll interface, but this makes it easy */
 	adns_processany(ads);
 	do_dns();
+	timerclear(&tv);
+	tv.tv_sec = 1;
+	event_add(ev, &tv);
 }
 
 
@@ -328,7 +335,7 @@ do_dns ()
 		/* delete from list */
 		dnsnode1 = list_delete (dnslist, dnsnode);
 		dnsnode = list_next (dnslist, dnsnode1);
-		free (dnsdata->a);
+/*		free (dnsdata->a); */
 		free (dnsdata);
 		lnode_destroy (dnsnode1);
 	}
@@ -416,7 +423,7 @@ void got_reverse_lookup_answer(void *data, adns_answer * a) {
 	}		
 	MQC_CLEAR_STAT_DNSLOOKUP(mqs);
 	/* XXX check bans? */
-
+	got_dns(mqs);
 
 #if 0
 	/* ok, create a new client */

@@ -193,7 +193,7 @@ read_fd (mqp *mqplib, mqpacket *mqp)
 
 	bzero (buf, BUFSIZE);
 	i = read (mqp->sock, buf, BUFSIZE);
-	if (i < 1) {
+	if (i == 0) {
 		/* error */
 		close_fd (mqplib, mqp);
 		if (mqplib->logger)

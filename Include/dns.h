@@ -33,6 +33,6 @@ void canx_dns(const char *modname);
 void do_dns_stats_Z();
 int dns_lookup (char *str, adns_rrtype type, void (*callback) (void *data, adns_answer * a), void *data);
 void do_reverse_lookup(mqsock *mqs);
-void setup_dns_socks();
+void check_dns(int fd, short event, void *arg);
 
 #endif /* _DNS_H_ */

@@ -190,8 +190,12 @@ pck_after_poll (const struct pollfd *ufds, int nfds)
 			pck_accept_connection (ufds[i].fd);
 			continue;
 		}
+#if 0
+		/* this isn't needed I guess, read and write can detect EOF */
 		if (ufds[i].revents & POLLHUP || ufds[i].revents & POLLERR) {
+		if (ufds[i].revents & POLLHUP) {
 			node = pck_find_fd_node(ufds[i].fd, connections);
+printf("recieved hup %s\n", strerror(errno));
 			if (node) {
 				mqp = lnode_get(node);
 				close_fd (sockconfig.mqplib, mqp);
@@ -200,6 +204,7 @@ pck_after_poll (const struct pollfd *ufds, int nfds)
 			}
 			return NS_FAILURE;
 		}
+#endif
 		if (ufds[i].revents & POLLIN) {
 			node = pck_find_fd_node(ufds[i].fd, connections);
 			if (node) {
