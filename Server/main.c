@@ -34,7 +34,7 @@
 #include "sock.h"
 #include "dotconf.h"
 #include "dns.h"
-
+#include "packet.h"
 
 /*! Date when we were compiled */
 const char version_date[] = __DATE__;
@@ -47,6 +47,8 @@ char segv_location[SEGV_LOCATION_BUFSIZE];
 void start (void);
 static void setup_signals (void);
 static int get_options (int argc, char **argv);
+
+void pck_logger(char *fmt,...);
 
 /*! have we forked */
 int forked = 0;
@@ -119,6 +121,8 @@ main (int argc, char *argv[])
 	/* init libevent */
 	event_init();
 	
+	pck_init();
+	pck_set_logger(pck_logger);
 	/* load the config files */
 	if(ConfLoad () != NS_SUCCESS)
 		return EXIT_FAILURE;
@@ -467,3 +471,11 @@ void fatal_error(char* file, int line, char* func, char* error_text)
 	do_exit (NS_EXIT_ERROR, "Fatal Error - check log file");
 }
 
+void pck_logger(char *fmt,...) {
+	va_list ap;
+	char log_buf[BUFSIZE];
+	va_start(ap, fmt);
+	vsnprintf(log_buf, BUFSIZE, fmt, ap);
+	va_end(ap);
+	nlog(LOG_DEBUG2, LOG_CORE, "%s", log_buf);
+}

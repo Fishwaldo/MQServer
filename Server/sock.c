@@ -48,6 +48,8 @@ static int listen_on_port(int port);
 
 static void setup_dns_socks();
 
+static int buffer_add(mqclient *mqc, void *data, size_t datlen);
+
 
 /** @brief Connect to a server
  *
@@ -108,27 +110,38 @@ ConnectTo (char *host, int port)
 }
 
 void client_activity(int fd, short eventtype, void *arg) {
-	char buf[BUFSIZE];
+	void *buf[BUFSIZE];
 	mqclient *mqc = arg;
-	int i;
+	int i, dorun;
 	SET_SEGV_LOCATION();
+	dorun = 1;
 	if (eventtype == EV_READ) {
-		bzero(buf, BUFSIZE);
-		i = read(fd, buf, BUFSIZE);
-		if (i < 1) {
-			/* error */
-			nlog(LOG_WARNING, LOG_CORE, "Read Error on %d: %s", fd, strerror(errno));
-			/* delete sock */
-			event_del(&mqc->ev);
-			del_client(mqc);
-			close(fd);
-			return;
-		} else {
-			printf("%s", buf);
-			fflush(NULL);
-
+		while (dorun) {
+			bzero(buf, BUFSIZE);
+			i = read(fd, buf, BUFSIZE);
+			if (i < 1) {
+				/* error */
+				nlog(LOG_WARNING, LOG_CORE, "Read Error on %d: %s", fd, strerror(errno));
+				/* delete sock */
+				event_del(&mqc->ev);
+				del_client(mqc);
+				close(fd);
+				return;
+			} else {
+				buffer_add(mqc, buf, i);
+				if (i <= BUFSIZE) {
+					/* we read less then bufsize, so there is no more data */
+					dorun = 0;
+				}
+			}
 		}
 	}
+
+	/* only process the packet if we are ready */
+printf("mmmhmm\n");
+	if (mqc->pck) {
+		pck_parse_packet(mqc->pck, mqc->buffer, mqc->offset);
+	}	
 }
 
 
@@ -147,6 +160,7 @@ void listen_accept(int fd, short eventtype, void *arg) {
 	}
 	mqc = new_client(l);
  	MQC_SET_STAT_CONNECT(mqc);
+	MQC_SET_TYPE_CLIENT(mqc);
 	mqc->ip = client_address;
 	strncpy(mqc->host, inet_ntoa(client_address.sin_addr), MAXHOST);
 	nlog(LOG_DEBUG1, LOG_CORE, "New Connection from %s on fd %d", mqc->host, mqc->fd);
@@ -296,4 +310,35 @@ void setup_dns_socks() {
 	/* acutally it would be better to use the select/poll interface, but this makes it easy */
 	adns_processany(ads);
 	do_dns();
+}
+
+int
+buffer_add(mqclient *mqc, void *data, size_t datlen)
+{
+	size_t need = mqc->offset + datlen;
+	size_t oldoff = mqc->offset;
+
+	if (mqc->bufferlen < need) {
+		void *newbuf;
+		int length = mqc->bufferlen;
+
+		if (length < 256)
+			length = 256;
+		while (length < need)
+			length <<= 1;
+
+		if ((newbuf = realloc(mqc->buffer, length)) == NULL)
+			return (-1);
+		mqc->buffer = newbuf;
+		mqc->bufferlen = length;
+	}
+
+	memcpy(mqc->buffer + mqc->offset, data, datlen);
+	mqc->offset += datlen;
+
+#if 0
+	if (datlen && mqc->cb != NULL)
+		(*mqc->cb)(mqc, oldoff, mqc->off, mqc->cbarg);
+#endif
+	return (0);
 }

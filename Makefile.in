@@ -27,6 +27,7 @@ all: modules
 modules:
 	(cd adns; $(MAKE) $@)
 	(cd libevent; $(MAKE) libevent.a)
+	(cd Libs; $(MAKE) all)
 	(cd Server; $(MAKE) mqserver)
 
 # include dependency info 

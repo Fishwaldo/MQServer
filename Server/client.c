@@ -38,6 +38,7 @@
 #include "client.h"
 #include "list.h"
 #include "dns.h"
+#include "packet.h"
 
 list_t *clientlist;
 
@@ -98,6 +99,9 @@ void del_client(mqclient *mqc) {
 	nlog(LOG_DEBUG1, LOG_CORE, "Deleting Client %s (%d)", mqc->user, mqc->fd);
 	list_delete(clientlist, mqc->node);
 	lnode_destroy(mqc->node);
+	if (mqc->bufferlen > 0) {
+		free(mqc->buffer);
+	}
 	free(mqc);
 }
 
@@ -121,8 +125,20 @@ void got_reverse_lookup_answer(void *data, adns_answer * a) {
 		}
 	}		
 	MQC_CLEAR_STAT_DNSLOOKUP(mqc);
-	
 	/* XXX check bans? */
+
+
+	/* ok, create a new client */
+	if (MQC_IS_TYPE_CLIENT(mqc)) 
+		mqc->pck = pck_new_conn((void *)mqc, PCK_IS_CLIENT);
+	
+printf("%d\n", mqc->pck->wtforinpack);
+printf("Eh %d\n", mqc->pck->servorclnt);
+	/* if there is data in the buffer, see if we can parse it already */
+	if (mqc->offset > 0) {
+		pck_parse_packet(mqc->pck, mqc->buffer, mqc->offset);
+	}
+
 }
 
 void do_reverse_lookup(mqclient *mqc) {

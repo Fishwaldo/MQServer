@@ -6,11 +6,15 @@ Include/defines.h -text
 Include/dict.h -text
 Include/dns.h -text
 Include/dotconf.h -text
+Include/getchar.h -text
 Include/hash.h -text
 Include/list.h -text
 Include/log.h -text
+Include/packet.h -text
 Include/sock.h -text
 Include/version.h -text
+Libs/Makefile.in -text
+Libs/packet.c -text
 /Makefile.in -text
 Server/client.c -text
 Server/conf.c -text
@@ -22,6 +26,7 @@ Server/list.c -text
 Server/log.c -text
 Server/main.c -text
 Server/sock.c -text
+Server/testclient.c -text
 /aclocal.m4 -text
 adns/Makefile -text
 adns/adns.h -text
