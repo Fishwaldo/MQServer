@@ -41,9 +41,9 @@
 #include "serversock.h"
 #include "xds.h"
 #include "admincli.h"
-#include "callback.h"
 #include "mythread.h"
 #include "queuemanager.h"
+#include "callback.h"
 
 int MQS_listen_on_port(int port, long type);
 
@@ -60,7 +60,11 @@ void MQS_Logger(char *fmt,...) {
 
 void MQS_remove_client(mqsock *mqs) {
 	nlog(LOG_DEBUG1, LOG_CORE, "Dropping client %d", mqs->data.fd);
+	/* notify the queue that this client is gone! */
+	qm_delclnt(mqs);
+#if 0
 	close_fd(mqssetup.mqplib, mqs->mqp);
+#endif
 	event_del(&mqs->ev);
 	list_delete(mqssetup.connections, mqs->node);
 	lnode_destroy(mqs->node);
@@ -81,6 +85,7 @@ void MQS_client_activity(int fd, short eventtype, void *arg) {
 		rc = write_fd(mqssetup.mqplib, mqs->mqp);
 	}
 	if (rc == NS_FAILURE) {
+printf("kill\n");
 		MQS_remove_client(mqs);			
 	}
 
@@ -245,8 +250,8 @@ MQS_sock_start ()
 		event_loop(EVLOOP_ONCE);
 		
 		/* check our queues */
-		check_authq();	
-		check_messq();
+		qm_check_authq();	
+		qm_check_messq();
 			
 		if (me.die) {
 			do_exit(NS_EXIT_NORMAL, "Normal Exit");

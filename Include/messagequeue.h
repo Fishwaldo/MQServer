@@ -23,8 +23,8 @@
 ** $Id: client.h 23 2004-07-27 10:57:56Z Fish $
 */
 
-#ifndef AUTHQUEUE_H
-#define AUTHQUEUE_H
+#ifndef MESSAGEQUEUE_H
+#define MESSAGEQUEUE_H
 
 void *init_messqueue(void *arg);
 

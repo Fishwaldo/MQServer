@@ -43,6 +43,8 @@
 #include "tcprioq.h"
 #include "messagequeue.h"
 #include "dns.h"
+#include "client.h"
+
 
 void *init_messqueue(void *arg) {
 	int ret;
@@ -67,14 +69,30 @@ void *init_messqueue(void *arg) {
 		} else {
 			pthread_mutex_unlock(&messq->mutex);
 			tcprioq_get(messq->inqueue, (void *)&mqi);
+
+			switch (mqi->type) {
+				case MQI_TYPE_NEWCLNT:
+					mq_new_client(mqi);
+					break;
+				case MQI_TYPE_DELCLNT:
+					mq_del_client(mqi);
+					break;
+				default:
+					nlog(LOG_WARNING, LOG_CORE, "Unknown Message Type %d in MessageQueue, Discarding", mqi->type);
+					break;
+			}
+
 			/* XXX do something */
+			printf("doing something\n");
 
 
-
+			free(mqi);
+#if 0
 			/* Put it back in the outqueue */
 			pthread_mutex_lock(&messq->mutex);
 			tcprioq_add(messq->outqueue, (void *)mqi);
 			pthread_mutex_unlock(&messq->mutex);
+#endif
 		}
 	}
 	/* finished */

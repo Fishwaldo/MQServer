@@ -54,7 +54,7 @@ int MQS_Callback(void *mqplib, mqpacket *mqp) {
 		case PCK_AUTH:
  			nlog(LOG_DEBUG1, LOG_CORE, "Got Client Auth on fd %d: %s %s", mqp->sock, mqp->inmsg.data.auth.username, mqp->inmsg.data.auth.password); 
 			/* XXX Do Auth */
-			newauthqitm(mqs, mqp->inmsg.data.auth.username, mqp->inmsg.data.auth.password, mqp->inmsg.MID);
+			qm_newauthqitm(mqs, mqp->inmsg.data.auth.username, mqp->inmsg.data.auth.password, mqp->inmsg.MID);
 			break;
 		default:
 			nlog(LOG_WARNING, LOG_CORE, "Got Unhandled Msgtype on fd %d", mqp->sock);
@@ -66,19 +66,20 @@ int MQS_Callback(void *mqplib, mqpacket *mqp) {
 }
 
 
-int MQS_Auth_Callback(unsigned long conid, int result, int mid) {
+int MQS_Auth_Callback(authqitm *aqi) {
 	mqsock *mqs;
-	mqs = find_con_by_id(conid);
+	mqs = find_con_by_id(aqi->conid);
 	if (mqs) {
-		if (result == NS_SUCCESS) {
+		if (aqi->result == NS_SUCCESS) {
 			MQC_SET_STAT_AUTHOK(mqs);
-			pck_send_ack(mqssetup.mqplib, mqs->mqp, mid);
+			pck_send_ack(mqssetup.mqplib, mqs->mqp, aqi->mid);
+			qm_newclnt(mqs, aqi);
 		} else { 
 			pck_send_error(mqssetup.mqplib, mqs->mqp, "Invalid Username/Password");
 			MQS_remove_client(mqs);
 		}
 	} else {
-		nlog(LOG_WARNING, LOG_CORE, "Can't Find Conid %ld for Auth", conid);
+		nlog(LOG_WARNING, LOG_CORE, "Can't Find Conid %ld for Auth", aqi->conid);
 	}
 	return NS_SUCCESS;
 }

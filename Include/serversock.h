@@ -23,8 +23,8 @@
 ** $Id: client.h 23 2004-07-27 10:57:56Z Fish $
 */
 
-#ifndef CLIENT_H
-#define CLIENT_H
+#ifndef SERVERSOCK_H
+#define SERVERSOCK_H
 
 #include "defines.h"
 #include "event.h"

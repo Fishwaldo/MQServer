@@ -38,7 +38,7 @@
 #include "libcli.h"
 #include "admincli.h"
 #include "mythread.h"
-
+#include "client.h"
 
 
 #define MODE_CONFIG_INT		10
@@ -74,6 +74,25 @@ int cmd_threads(struct cli_def *cli, char *command, char *argv[], int argc)
     	node = list_next(threads, node);
     }
     MYUNLOCK(&mythreadengine);
+    return CLI_OK;
+}
+
+int cmd_connections(struct cli_def *cli, char *command, char *argv[], int argc)
+{
+    int i = 1;
+    lnode_t *node;
+    mqclient *mqc;
+
+    MYLOCK(&mq_clientslock);
+    cli_print(cli, "Active Connections (%d):", (int) list_count(mq_clients));
+    node = list_first(mq_clients);
+    while (node) {
+    	mqc = lnode_get(node);
+    	cli_print(cli, "%d) ID: %ld Auth: %s@%s",i , mqc->clntid, mqc->username, mqc->host);
+    	i++;
+    	node = list_next(mq_clients, node);
+    }
+    MYUNLOCK(&mq_clientslock);
     return CLI_OK;
 }
 
@@ -149,7 +168,7 @@ void *init_admin_cli(void *arg) {
     cli_register_command(cli, NULL, "set", cmd_set,  PRIVILEGE_PRIVILEGED, MODE_EXEC, NULL);
     c = cli_register_command(cli, NULL, "show", NULL,  PRIVILEGE_UNPRIVILEGED, MODE_EXEC, NULL);
     cli_register_command(cli, c, "threads", cmd_threads, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, "Show the threads that are currently active");
-
+    cli_register_command(cli, c, "connections", cmd_connections, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, "Show the current authenticated Connections");
 
     cli_register_command(cli, NULL, "interface", cmd_config_int, PRIVILEGE_PRIVILEGED, MODE_CONFIG, "Configure an interface");
     cli_register_command(cli, NULL, "exit", cmd_config_int_exit, PRIVILEGE_PRIVILEGED, MODE_CONFIG_INT, "Exit from interface configuration");

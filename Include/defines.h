@@ -205,6 +205,9 @@ struct me {
 	int authqthreshold;
 	int authqmaxthreads;
 	int authqtimeout;
+	int messqthreshold;
+	int messqmaxthreads;
+	int messqtimeout;
 } me;
 
 /* conf.c */

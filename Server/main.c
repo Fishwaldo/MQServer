@@ -24,6 +24,7 @@
 #include "config.h"
 #include <setjmp.h>
 #include <stdio.h>
+#include <pthread.h>
 #ifdef HAVE_BACKTRACE
 #include <execinfo.h>
 #endif
@@ -37,6 +38,7 @@
 #include "mythread.h"
 #include "queuemanager.h"
 #include "conf.h"
+#include "client.h"
 
 /*! Date when we were compiled */
 const char version_date[] = __DATE__;
@@ -125,6 +127,15 @@ main (int argc, char *argv[])
 	me.authqthreshold = 5;
 	me.authqmaxthreads = 5;	
 	me.authqtimeout = 10;
+	me.messqthreshold = 5;
+	me.messqmaxthreads = 5;	
+	me.messqtimeout = 10000;
+
+
+	/* setup the mqclients list */
+	mq_clients = list_create(-1);
+	MYLOCK_INIT(mq_clientslock);
+
 
 	/* prepare to catch errors */
 	setup_signals ();

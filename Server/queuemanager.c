@@ -40,6 +40,7 @@
 #include "serversock.h"
 #include "queuemanager.h"
 #include "authqueue.h"
+#include "messagequeue.h"
 #include "mythread.h"
 #include "tcprioq.h"
 #include "dns.h"
@@ -49,7 +50,7 @@
 myqueues *authq;
 myqueues *messq;
 
-int authqcmp(const void *key1, const void *key2) {
+int qm_cmp(const void *key1, const void *key2) {
 	authqitm *aqi = (authqitm *)key1;
 	authqitm *aqi2 = (authqitm *)key2;
 	return (aqi2->prio - aqi->prio);
@@ -58,15 +59,15 @@ int authqcmp(const void *key1, const void *key2) {
 extern int queueman_init() {
 	/* this is the authorize message queue */
 	authq = malloc(sizeof(myqueues));
-	authq->inqueue = tcprioq_new(AUTHQSIZE, 1, authqcmp);
-	authq->outqueue = tcprioq_new(AUTHQSIZE, 1, authqcmp);
+	authq->inqueue = tcprioq_new(AUTHQSIZE, 1, qm_cmp);
+	authq->outqueue = tcprioq_new(AUTHQSIZE, 1, qm_cmp);
 	pthread_mutex_init(&authq->mutex, NULL);
 	pthread_cond_init(&authq->cond, NULL); 
 	
 	/* this is the message queue queue */
 	messq = malloc(sizeof(myqueues));
-	messq->inqueue = tcprioq_new(MESSQSIZE, 1, authqcmp);
-	messq->outqueue = tcprioq_new(MESSQSIZE, 1, authqcmp);
+	messq->inqueue = tcprioq_new(MESSQSIZE, 1, qm_cmp);
+	messq->outqueue = tcprioq_new(MESSQSIZE, 1, qm_cmp);
 	pthread_mutex_init(&messq->mutex, NULL);
 	pthread_cond_init(&messq->cond, NULL);
 
@@ -74,7 +75,7 @@ extern int queueman_init() {
 }	
 
 
-extern int newauthqitm(mqsock *mqs, char *username, char *password, int mid) {
+extern int qm_newauthqitm(mqsock *mqs, char *username, char *password, int mid) {
 	authqitm *aqi;
 	int i;
 	/* copy the iteam over */
@@ -123,7 +124,7 @@ extern int qm_wait(myqueues *qi, int tmout) {
 	return (pthread_cond_timedwait(&qi->cond, &qi->mutex, &timeout));
 }	                                                         
 
-extern int check_authq() {
+extern int qm_check_authq() {
 	authqitm *aqi;
 	int i;
 	
@@ -132,7 +133,7 @@ extern int check_authq() {
 	i = tcprioq_items(authq->outqueue);
 	if (i > 0) {
 		while (!tcprioq_get(authq->outqueue, (void *)&aqi)) {
-			MQS_Auth_Callback(aqi->conid, aqi->result, aqi->mid);
+			MQS_Auth_Callback(aqi);
 			free(aqi);
 		}	
 	}                                                                                                                                                                                                             
@@ -140,7 +141,7 @@ extern int check_authq() {
 	return NS_SUCCESS;
 }
 
-extern int check_messq() {
+extern int qm_check_messq() {
 	messqitm *mqi;
 	int i;
 	
@@ -154,3 +155,70 @@ extern int check_messq() {
 	pthread_mutex_unlock(&messq->mutex);
 	return NS_SUCCESS;
 }
+
+/* this function is called when a new client is authenticated
+ * and we send it to the messagequeue for processing of stored messages and 
+ * setup the message queue client information 
+ */
+extern int qm_newclnt(mqsock *mqs, authqitm *aqi) {
+	messqitm *mqi;
+	int i;
+	
+	mqi = malloc(sizeof(messqitm));
+	/* new clients go in with low priority */
+	mqi->prio = PRIOQ_SLOW;
+	mqi->conid = mqs->connectid;
+	mqi->type = MQI_TYPE_NEWCLNT;
+	strncpy(mqi->data.new_clnt.username, aqi->username, MAXUSER);
+	strncpy(mqi->data.new_clnt.host, aqi->host, MAXHOST);
+	
+	/* lock the messq */
+	pthread_mutex_lock(&messq->mutex);
+	/* add it to the queue */
+	tcprioq_add(messq->inqueue, mqi);
+	
+	/* check if we have a authq thread running */
+	i = count_threads("messqm");
+	/* if there is no thread, or we have x items in the queue, and have not reached out authq max threads setting, 
+	 * then start up a new thread 
+	 */
+	if ((i <= 0) || ((tcprioq_items(messq->inqueue) > me.messqthreshold) && (i < me.messqmaxthreads))) {
+		/* start a new thread */
+		create_thread("messqm", init_messqueue, messq);
+	}	
+	/* wake up a thread */
+	pthread_mutex_unlock(&messq->mutex);
+	pthread_cond_signal(&messq->cond);
+	return NS_SUCCESS;
+
+}
+
+/* this function is called when a client is deleted */
+extern int qm_delclnt(mqsock *mqs) {
+	messqitm *mqi;
+	int i;
+	
+	mqi = malloc(sizeof(messqitm));
+	mqi->prio = PRIOQ_SLOW;
+	mqi->conid = mqs->connectid;
+	mqi->type = MQI_TYPE_DELCLNT;
+
+	/* lock the messq */
+	pthread_mutex_lock(&messq->mutex);
+	/* add it to the queue */
+	tcprioq_add(messq->inqueue, mqi);
+	
+	/* check if we have a authq thread running */
+	i = count_threads("messqm");
+	/* if there is no thread, or we have x items in the queue, and have not reached out authq max threads setting, 
+	 * then start up a new thread 
+	 */
+	if ((i <= 0) || ((tcprioq_items(messq->inqueue) > me.messqthreshold) && (i < me.messqmaxthreads))) {
+		/* start a new thread */
+		create_thread("messqm", init_messqueue, messq);
+	}	
+	/* wake up a thread */
+	pthread_mutex_unlock(&messq->mutex);
+	pthread_cond_signal(&messq->cond);
+	return NS_SUCCESS;
+}	

@@ -56,8 +56,19 @@ typedef struct authqitm {
 } authqitm;
 
 
+#define MQI_TYPE_NEWCLNT 1
+#define MQI_TYPE_DELCLNT 2
+
 typedef struct messqitm {
 	int prio;
+	unsigned long conid;
+	int type;
+	union {
+		struct new_clnt {
+			char username[MAXUSER];
+			char host[MAXHOST];
+		} new_clnt;
+	} data;
 } messqitm;
 
 

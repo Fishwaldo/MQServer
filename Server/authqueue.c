@@ -68,7 +68,7 @@ void *init_authqueue(void *arg) {
 			pthread_mutex_unlock(&authq->mutex);
 			/* XXX Do auth */
 			nlog(LOG_DEBUG1, LOG_CORE, "Auth %ld -  %s@%s (%s)\n", aqi->conid, aqi->username, aqi->host, aqi->password);
-			aqi->result = NS_FAILURE;
+			aqi->result = NS_SUCCESS;
 
 			/* put result in outqueu */
 			pthread_mutex_lock(&authq->mutex);			
