@@ -41,39 +41,40 @@
 #include "queuemanager.h"
 #include "mythread.h"
 #include "tcprioq.h"
-#include "authqueue.h"
+#include "messagequeue.h"
 #include "dns.h"
 
-void *init_authqueue(void *arg) {
+void *init_messqueue(void *arg) {
 	int ret;
-	myqueues *authq = (myqueues *)arg;
+	myqueues *messq = (myqueues *)arg;
 	int candie = 0;
-	authqitm *aqi;
+	messqitm *mqi;
 
 	
-	thread_created("authqm");
+	thread_created("messqm");
 	
 	/* setup */
 	
 	/* loop and wait */
 	
 	while (candie != 1) {
-		ret = qm_wait(authq, me.authqtimeout);
+		/* XXX config a timeout */
+		ret = qm_wait(messq, 60);
 		if (ret == ETIMEDOUT) {
-			pthread_mutex_unlock(&authq->mutex);
+			pthread_mutex_unlock(&messq->mutex);
 			/* say goodnight */
 			candie = 1;		
 		} else {
-			tcprioq_get(authq->inqueue, (void *)&aqi);
-			pthread_mutex_unlock(&authq->mutex);
-			/* XXX Do auth */
-			nlog(LOG_DEBUG1, LOG_CORE, "Auth %ld -  %s@%s (%s)\n", aqi->conid, aqi->username, aqi->host, aqi->password);
-			aqi->result = NS_FAILURE;
+			pthread_mutex_unlock(&messq->mutex);
+			tcprioq_get(messq->inqueue, (void *)&mqi);
+			/* XXX do something */
 
-			/* put result in outqueu */
-			pthread_mutex_lock(&authq->mutex);			
-			tcprioq_add(authq->outqueue, (void *)aqi);
-			pthread_mutex_unlock(&authq->mutex);
+
+
+			/* Put it back in the outqueue */
+			pthread_mutex_lock(&messq->mutex);
+			tcprioq_add(messq->outqueue, (void *)mqi);
+			pthread_mutex_unlock(&messq->mutex);
 		}
 	}
 	/* finished */

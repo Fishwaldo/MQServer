@@ -58,7 +58,7 @@ am_mqserver_OBJECTS = main.$(OBJEXT) serversock.$(OBJEXT) \
 	admincli.$(OBJEXT) libcli.$(OBJEXT) list.$(OBJEXT) \
 	hash.$(OBJEXT) conf.$(OBJEXT) dict.$(OBJEXT) log.$(OBJEXT) \
 	mythread.$(OBJEXT) prioq.$(OBJEXT) queuemanager.$(OBJEXT) \
-	authqueue.$(OBJEXT)
+	authqueue.$(OBJEXT) messagequeue.$(OBJEXT)
 mqserver_OBJECTS = $(am_mqserver_OBJECTS)
 mqserver_DEPENDENCIES =
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/Include
@@ -200,7 +200,7 @@ xds_uint32_t = @xds_uint32_t@
 xds_uint64_t = @xds_uint64_t@
 xds_uint8_t = @xds_uint8_t@
 mqserver_SOURCES = main.c serversock.c callback.c client.c dns.c admincli.c libcli.c list.c hash.c conf.c dict.c log.c mythread.c prioq.c \
-			  queuemanager.c authqueue.c
+			  queuemanager.c authqueue.c messagequeue.c
 
 mqserver_LDADD = -L$(top_srcdir)/Libs/ -lmqpacket -L$(top_srcdir)/libevent/ -levent -L$(top_srcdir)/adns/ -ladns -L$(top_srcdir)/confuse/ -lconfuse -lpthread -lcrypt
 AM_CFLAGS = -I$(top_srcdir)/Include -I$(top_srcdir)/adns -I$(top_srcdir)/libevent -I$(top_srcdir)/confuse -DNDEBUG -ggdb 
@@ -290,6 +290,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/list.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/log.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/messagequeue.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mythread.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/prioq.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/queuemanager.Po@am__quote@
