@@ -36,7 +36,6 @@
 #include "adns.h"
 #include "conf.h"
 #include "log.h"
-#include "dotconf.h"
 #include "packet.h"
 #include "dns.h"
 #include "serversock.h"
@@ -209,26 +208,29 @@ MQS_sock_start ()
 
 	event_init();
 
-	mqssetup.xdrport = 8888;
-	mqssetup.xmlport = 8889;
-	mqssetup.adminport = 8887;
+	GETCONF(mqssetup.xdrport, xdrport);
+	GETCONF(mqssetup.xmlport, xmlport);
+	GETCONF(mqssetup.adminport, adminport);
 	mqssetup.nxtconid = 0;
 
-	if (MQS_listen_on_port(mqssetup.xdrport, MQC_TYPE_LISTEN_XDR) != NS_SUCCESS) {
-		do_exit(NS_EXIT_ERROR, "Can't Create Client Port");
-		return;
+	if (mqssetup.xdrport > 0) {
+		if (MQS_listen_on_port(mqssetup.xdrport, MQC_TYPE_LISTEN_XDR) != NS_SUCCESS) {
+			do_exit(NS_EXIT_ERROR, "Can't Create Client Port");
+			return;
+		}
 	}
-
-	if (MQS_listen_on_port(mqssetup.xmlport, MQC_TYPE_LISTEN_XML) != NS_SUCCESS) {
-		do_exit(NS_EXIT_ERROR, "Can't Create Client Port");
-		return;
+	if (mqssetup.xmlport > 0) {
+		if (MQS_listen_on_port(mqssetup.xmlport, MQC_TYPE_LISTEN_XML) != NS_SUCCESS) {
+			do_exit(NS_EXIT_ERROR, "Can't Create Client Port");
+			return;
+		}
 	}
-	
-	if (MQS_listen_on_port(mqssetup.adminport, MQC_TYPE_LISTEN_ADMIN) != NS_SUCCESS) {
-		do_exit(NS_EXIT_ERROR, "Can't create Admin Port");
-		return;
+	if (mqssetup.adminport > 0) {
+		if (MQS_listen_on_port(mqssetup.adminport, MQC_TYPE_LISTEN_ADMIN) != NS_SUCCESS) {
+			do_exit(NS_EXIT_ERROR, "Can't create Admin Port");
+			return;
+		}
 	}
-	
 	/* setup DNS to run every so often */
 	evtimer_set(&dnstimeout, check_dns, &dnstimeout);
 	timerclear(&tv);

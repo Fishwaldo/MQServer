@@ -13,7 +13,6 @@ Include/config.h.in -text
 Include/defines.h -text
 Include/dict.h -text
 Include/dns.h -text
-Include/dotconf.h -text
 Include/getchar.h -text
 Include/hash.h -text
 Include/libcli.h -text
@@ -57,6 +56,7 @@ Server/libcli.c -text
 Server/list.c -text
 Server/log.c -text
 Server/main.c -text
+Server/mqserver.cfg -text
 Server/mythread.c -text
 Server/prioq.c -text
 Server/queuemanager.c -text

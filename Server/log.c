@@ -30,7 +30,6 @@
 #include "conf.h"
 #include "hash.h"
 #include "log.h"
-#include "dotconf.h"
 #include "mythread.h"
 #ifdef HAVE_BACKTRACE
 #include <execinfo.h>

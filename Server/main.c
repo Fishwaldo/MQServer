@@ -29,15 +29,14 @@
 #endif
 #include "defines.h"
 #include "signal.h"
-#include "conf.h"
 #include "log.h"
 #include "sock.h"
-#include "dotconf.h"
 #include "dns.h"
 #include "packet.h"
 #include "serversock.h"
 #include "mythread.h"
 #include "queuemanager.h"
+#include "conf.h"
 
 /*! Date when we were compiled */
 const char version_date[] = __DATE__;

@@ -23,6 +23,8 @@
 ** $Id$
 */
 
+#include <pthread.h>
+
 #include "defines.h"
 #include "confuse.h"
 #include "conf.h"
@@ -39,6 +41,9 @@ cfg_opt_t main_opts[] = {
 	CFG_INT("xdr-protocol-port", 8888, CFGF_NONE),
 	CFG_BOOL("telnet-enable", cfg_true, CFGF_NONE),
 	CFG_INT("telnet-port", 8887, CFGF_NONE),
+	CFG_BOOL("load-quiet", cfg_false, CFGF_NONE),
+	CFG_INT("debug-level", 0, CFGF_NONE),
+	CFG_BOOL("foreground", cfg_false, CFGF_NONE),
 	CFG_END()
 };
 
@@ -52,9 +57,9 @@ cfg_opt_t opts[] = {
 int
 ConfLoad ()
 {
+	MYLOCK_INIT(config.configmutex);
 
-
-
+	MYLOCK(&config.configmutex);
 	/* Read in the Config File */
 	printf ("Reading the Config File. Please wait.....\n");
 	cfg = cfg_init(opts, CFGF_NOCASE);
@@ -67,10 +72,35 @@ ConfLoad ()
 		printf ("*                                                 *\n");
 		printf ("*             NeoStats NOT Started                *\n");
 		printf ("***************************************************\n");
+		MYUNLOCK(&config.configmutex);
 		return NS_FAILURE;
 	}
-	printf ("Sucessfully Loaded Config File, Now Booting %s MQServer\n", cfg_getstr(cfg, "main|name"));
 
+	strncpy(config.hostname, cfg_getstr(cfg, "main|name"), MAXHOST);
+	if (cfg_getbool(cfg, "main|xml-protocol-enable") == cfg_true) {
+		config.xmlport = cfg_getint(cfg, "main|xml-protocol-port");
+	} else {
+		config.xmlport = -1;
+	}
+	if (cfg_getbool(cfg, "main|xdr-protocol-enable") == cfg_true) {
+		config.xdrport = cfg_getint(cfg, "main|xdr-protocol-port");
+	} else {
+		config.xdrport = -1;
+	}
+	if (cfg_getbool(cfg, "main|telnet-enable") == cfg_true) {
+		config.adminport = cfg_getint(cfg, "main|telnet-port");
+	} else {
+		config.adminport = -1;
+	}
+	config.quiet = cfg_getbool(cfg, "main|load-quiet");
+	config.debug = cfg_getint(cfg, "main|debug-level");
+	config.foreground = cfg_getbool(cfg, "main|foreground");
+	
+
+	if (!config.quiet) {
+		printf ("Sucessfully Loaded Config File, Now Booting %s MQServer\n", cfg_getstr(cfg, "main|name"));
+	}
+	MYUNLOCK(&config.configmutex);
 	return NS_SUCCESS;
 }
 

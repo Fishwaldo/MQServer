@@ -27,28 +27,24 @@
 #ifndef _conf_h_
 #define _conf_h_
 
-/*
- * conf.h
- * dynamic configuration runtime libary
- */
+#include "mythread.h"
 
-/* define the config types */
+struct config {
+	mylocks configmutex;
+	char hostname[MAXHOST];
+	int quiet;
+	int debug;
+	int foreground;
+	int xmlport;
+	int xdrport;
+	int adminport;
+} config;
 
-#define CFGSTR   1
-#define CFGINT   2
-#define CFGFLOAT 3
-#define CFGBOOL  4
 
-#define CONFBUFSIZE 256
 
-int GetConf (void **data, int type, const char *item);
-int SetConf (void *data, int type, char *item);
-int GetDir (char *item, char ***data);
-int DelConf (char *item);
-int DelRow (char *table, char *row);
-int DelTable(char *table);
-int SetData (void *data, int type, char *table, char *row, char *field);
-int GetTableData (char *table, char ***data);
-int GetData (void **data, int type, const char *table, const char *row, const char *field);
-void flush_keeper();
+#define GETCONF(x, y) MYLOCK(&config.configmutex); \
+ 		      x = config.y; \
+ 		      MYUNLOCK(&config.configmutex);
+
+
 #endif
