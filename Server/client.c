@@ -60,14 +60,14 @@ void mq_new_client(messqitm *mqi) {
 	node = lnode_create(mqc);
 	MYLOCK(&mq_clientslock);
 	/* lock the individual clients struct now as well */
-	MYLOCK(&mqc->lock);
+	/* not needed: MYLOCK(&mqc->lock); */
 	list_append(mq_clients, node);
 	MYUNLOCK(&mq_clientslock);
 
 
 
 	/* before we return, unlock the client */
-	MYUNLOCK(&mqc->lock);
+	/* not needed: 	MYUNLOCK(&mqc->lock); */
 }
 
 static int compare_mqclient(const void *key1, const void *key2) {

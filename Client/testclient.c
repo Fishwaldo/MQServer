@@ -35,13 +35,73 @@
 #include "log.h"
 
 void pck_logger(char *fmt,...);
+int conid;
 
+typedef struct testdata {
+	char *name;
+	int size;
+	char testdata[255];
+} testdata;
+
+/* define for readstr */
+void *readstr(void *data, size_t *size);
+
+
+structentry testdataentry[] = {
+	{
+		STR_PSTR,	/* its a pointer to a string */
+		0,		/* pointers are unknown, have to use a callback */
+		0, 		/* for callbacks, no offset is required */
+		readstr
+	},
+	{
+		STR_INT,	/* its a integer */
+		sizeof(int),	/* its the size of a int */
+		offsetof(struct testdata, size), /* we need to know the offset for this one */
+		NULL		/* no callback is required for simple ints */
+	},
+	{
+		STR_STR,	/* its a string */
+		255,		/* the string size */
+		offsetof(struct testdata, testdata),
+		NULL
+	}
+};
+testdata *tmp;
+	
+					
+void *readstr(void *data, size_t *size) {
+	testdata *tmp = (testdata *)data;
+	*size = strlen(tmp->name);
+	return tmp->name;
+}
+
+int gotaction(int type, void *cbarg) {
+	switch (type) {
+		case PCK_SMP_LOGINOK:
+			pck_simple_send_message_struct(conid, &testdataentry, (sizeof(testdataentry)/sizeof(structentry)), tmp, "testqueue");
+			break;
+	}			
+
+}
 int main() {
 	int rc = 1;
+	int ok = 0;
+	
+#if 0
 	init_socket();
 	debug_socket(1);
-
-	pck_make_connection("localhost", "fish", "haha", 0, NULL);
+#endif
+	tmp = malloc(sizeof(testdata));
+	tmp->name = malloc(234);
+	snprintf(tmp->name, 234, "hello world this is my testdata name");
+	tmp->size = 5643;
+	snprintf(tmp->testdata, 255, "and this is my static string");
+	
+	printf("total size %d\n", (sizeof(testdataentry)/sizeof(structentry)));
+	
+	
+	conid = pck_make_connection("localhost", "fish", "haha", 0, NULL, gotaction);
 	while (rc == 1) {
 		rc = pck_process();
 		sleep(1);

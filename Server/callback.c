@@ -56,6 +56,10 @@ int MQS_Callback(void *mqplib, mqpacket *mqp) {
 			/* XXX Do Auth */
 			qm_newauthqitm(mqs, mqp->inmsg.data.auth.username, mqp->inmsg.data.auth.password, mqp->inmsg.MID);
 			break;
+		case PCK_SENDTOQUEUE:
+			nlog(LOG_DEBUG1, LOG_CORE, "Got Messgae from Client on fd %d for queue %s (datasize %d msgsize %d)", mqp->sock, mqp->inmsg.data.stream.queue, mqp->inmsg.data.stream.datalen, mqp->inmsg.data.stream.len);
+			
+			break;
 		default:
 			nlog(LOG_WARNING, LOG_CORE, "Got Unhandled Msgtype on fd %d", mqp->sock);
 			return NS_FAILURE;

@@ -73,13 +73,17 @@
 #define PCK_CLNTCAP_FMT		"int32 int32 string"
 #define PCK_AUTH_FMT		"string string"
 
+#define PCK_SENDTOQUEUE_FMT	"string int32 octet"
+
 /* packet flags, not message flags */
 #define PCK_FLG_REQUIREACK		0x01
 #define PCK_FLG_REQUIREACPPROCESS 	0x02
 
 
 struct mq_data_stream {
+	char *queue;
 	void *data;
+	size_t datalen;
 	size_t len;
 } mq_data_stream;
 
@@ -152,6 +156,20 @@ typedef struct mqp {
 	callbackfunc *callback;
 } mqp; 	 
 
+/* defines for the structentry type fields */
+#define STR_PSTR	1
+#define STR_STR		2
+#define STR_INT		3
+
+
+typedef struct {
+	int type;
+	size_t size;
+	size_t offset;
+	void *(*readcb) (void *data, size_t *size);
+} structentry;	
+
+
 
 extern int encode_mqs_header (xds_t * xds, void *engine_context, void *buffer, size_t buffer_size, size_t * used_buffer_size, va_list * args);
 extern int decode_mqs_header (xds_t * xds, void *engine_context, void *buffer, size_t buffer_size, size_t * used_buffer_size, va_list * args);
@@ -171,17 +189,17 @@ mqpacket * pck_new_connection (mqp *mqplib, int fd, int type, int contype);
 void print_decode(mqpacket *, int what);
 int pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long buflen);
 unsigned long send_ack(mqp *mqplib, mqpacket *mqp, int MID);
+int pck_send_message_struct(mqp *mqplib, mqpacket *mqp, structentry *mystruct, int cols, void *data, char *destination);
 
-
-
+typedef int (actioncbfunc)(int, void *);
 
 /* this is the standalone un-threadsafe interface */
-int init_socket();
+int init_socket(actioncbfunc *);
 int debug_socket(int i);
 int enable_server(int port);
 int pck_process ();
-int pck_make_connection (char *hostname, char *, char *, long , void *cbarg);
-
+int pck_make_connection (char *hostname, char *, char *, long , void *cbarg, actioncbfunc *);
+int pck_simple_send_message_struct(int conid, structentry *mystruct, int cols, void *data, char *destination);
 
 
 /* these are error defines */
@@ -192,7 +210,12 @@ int pck_make_connection (char *hostname, char *, char *, long , void *cbarg);
 
 
 
+/* these are the simple callback types */
+#define PCK_SMP_LOGINOK		1
 
+
+#define PCK_SMP_CLNTCAPREJ	-1
+#define PCK_SMP_AUTHREJ		-2
 
 
 

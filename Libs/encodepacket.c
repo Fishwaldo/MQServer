@@ -165,8 +165,6 @@ unsigned long pck_send_error(mqp *mqplib, mqpacket *mqp, char *fmt, ...) {
 
 unsigned long pck_send_auth(mqp *mqplib, mqpacket *mqp, char *username, char *password) {
 	int rc;
-	va_list ap;
-	char log_buf[BUFSIZE];
 		
 	if (pck_prepare(mqplib, mqp, PCK_AUTH) != NS_SUCCESS) {
 		return NS_FAILURE;
@@ -202,3 +200,73 @@ pck_commit_data (mqp * mqplib, mqpacket * mqpck)
 }
 
 
+int 
+pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int cols, void *data, char *destination) {
+	int rc, i, myint;
+	void *mydata;
+	char *string;
+	void *buffer;
+	size_t bufferlen;
+
+
+	for (i = 0; i < cols; i++) {
+		printf("%d Column Type: %d, size %d, offset %d\n", i, mystruct[i].type, mystruct[i].size, mystruct[i].offset);
+		switch(mystruct[i].type) {
+			case STR_PSTR:
+				mydata = (mystruct[i].readcb)(data, &rc);
+				printf("Size: %d, Data %s\n", rc, (char *)mydata);
+				rc = xds_encode (mqpck->xdsout, "string", mydata);
+				if (rc != XDS_OK) {
+					if (mqplib->logger)
+						mqplib->logger ("xds encode header failed %d.", rc);
+					return NS_FAILURE;
+				}
+				break;
+			case STR_INT:
+				mydata = data + mystruct[i].offset;
+				myint = *(int *)mydata;
+				printf("int is %d\n", myint);
+				rc = xds_encode (mqpck->xdsout, "int32", myint);
+				if (rc != XDS_OK) {
+					if (mqplib->logger)
+						mqplib->logger ("xds encode header failed %d.", rc);
+					return NS_FAILURE;
+				}
+				break;
+			case STR_STR:
+				mydata = data + mystruct[i].offset;
+				if (strlen(mydata) > mystruct[i].size) {
+					if (mqplib->logger) 
+						mqplib->logger ("String In Column %d is too long (%d > %d). Not Encoding", i, strlen(mydata), mystruct[i].size);
+					break;
+				}
+				printf("String is %s\n", (char *)mydata);
+				rc = xds_encode (mqpck->xdsout, "string", (char *)mydata);
+				if (rc != XDS_OK) {
+					if (mqplib->logger)
+						mqplib->logger ("xds encode header failed %d.", rc);
+					return NS_FAILURE;
+				}
+				break;
+		}
+	}
+	rc = xds_getbuffer (mqpck->xdsout, XDS_GIFT, (void **) &buffer, &bufferlen) ;
+	if (rc != XDS_OK) {
+		if (mqplib->logger)
+			mqplib->logger ("OutBuffer is Full. %d", rc);
+		return NS_FAILURE;
+	}
+	if (pck_prepare(mqplib, mqpck, PCK_SENDTOQUEUE) != NS_SUCCESS) {
+		return NS_FAILURE;
+	}
+	rc = xds_encode (mqpck->xdsout, PCK_SENDTOQUEUE_FMT, destination, bufferlen, buffer, bufferlen);
+
+	if (rc != XDS_OK) {
+		if (mqplib->logger)
+			mqplib->logger ("xds encode message failed %d.", rc);
+		return NS_FAILURE;
+	}
+	
+	return (pck_commit_data(mqplib, mqpck));
+
+}

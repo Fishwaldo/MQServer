@@ -44,6 +44,8 @@ typedef struct sc {
 	int listport;
 	mqp *mqplib;
 	int debug;
+	void *cbarg;
+	actioncbfunc *actioncb;
 } sc;
 sc sockconfig;
 
@@ -53,6 +55,7 @@ void pck_logger(char *fmt, ...);
 
 
 int pck_simple_callback(void *mqplib, mqpacket *mqp) {
+	int type = 0;
 
 	switch (mqp->inmsg.MSGTYPE) {
 		case PCK_ACK:
@@ -60,9 +63,9 @@ int pck_simple_callback(void *mqplib, mqpacket *mqp) {
 				pck_logger("Got CLNTCAP ACK");
 				MQS_S_FLAG_SET_SENTAUTH(mqp);
 				pck_send_auth(mqplib, mqp, mqp->si.username, mqp->si.password);
-printf("%s %s\n", mqp->si.username, mqp->si.password);
 			} else if (MQS_S_FLAG_IS_SENTAUTH(mqp)) {
 				pck_logger("login Ack'd");
+				type = PCK_SMP_LOGINOK;
 				MQS_S_FLAG_SET_CONNECTOK(mqp);
 			}
 			break;
@@ -74,9 +77,11 @@ printf("%s %s\n", mqp->si.username, mqp->si.password);
 		case PCK_ERROR:
 			if (MQS_S_FLAG_IS_GOTSRVCAP(mqp)) {
 				pck_logger("Server rejected out clientcap for %s", mqp->inmsg.data.string);
+				type = PCK_SMP_CLNTCAPREJ;
 				return NS_FAILURE;
 			} else if (MQS_S_FLAG_IS_SENTAUTH(mqp)) {
 				pck_logger("Server rejected out Login: %s", mqp->inmsg.data.string);
+				type = PCK_SMP_AUTHREJ;
 				return NS_FAILURE;
 			}
 			break;
@@ -84,7 +89,9 @@ printf("%s %s\n", mqp->si.username, mqp->si.password);
 			pck_logger("Uknown msgtype recieved: %xd", mqp->inmsg.MSGTYPE);
 	}			
 
-
+	if (type != 0) {
+		(sockconfig.actioncb) (type, sockconfig.cbarg);
+	}
 
 	return NS_SUCCESS;
 }
@@ -100,12 +107,13 @@ void pck_logger(char *fmt,...) {
 	}
 }
 
-int init_socket() {
+int init_socket(actioncbfunc *actioncb) {
 	connections = list_create(-1);
 	sockconfig.listenfd = -1;
 	sockconfig.listport = -1;
 	sockconfig.mqplib = init_mqlib();
 	sockconfig.debug = 1;
+	sockconfig.actioncb = actioncb;
 	pck_set_logger(sockconfig.mqplib, pck_logger);		
 	pck_set_callback(sockconfig.mqplib, pck_simple_callback);
 	return NS_SUCCESS;
@@ -196,7 +204,6 @@ pck_after_poll (const struct pollfd *ufds, int nfds)
 		if (ufds[i].revents & POLLHUP || ufds[i].revents & POLLERR) {
 		if (ufds[i].revents & POLLHUP) {
 			node = pck_find_fd_node(ufds[i].fd, connections);
-printf("recieved hup %s\n", strerror(errno));
 			if (node) {
 				mqp = lnode_get(node);
 				close_fd (sockconfig.mqplib, mqp);
@@ -335,7 +342,7 @@ pck_accept_connection (int fd)
 }
 
 int
-pck_make_connection (char *hostname, char *username, char *password, long flags, void *cbarg)
+pck_make_connection (char *hostname, char *username, char *password, long flags, void *cbarg, actioncbfunc *actioncb)
 {
 	int s;
 	int myflags;
@@ -345,7 +352,7 @@ pck_make_connection (char *hostname, char *username, char *password, long flags,
 	struct hostent *hp;
 	struct in_addr ipad;
 
-	init_socket();
+	init_socket(actioncb);
 	debug_socket(1);
 
 	if (inet_aton(hostname, &ipad) == 0) {
@@ -399,3 +406,13 @@ pck_make_connection (char *hostname, char *username, char *password, long flags,
 }
 
 
+int pck_simple_send_message_struct(int conid, structentry *mystruct, int cols, void *data, char *destination) {
+	lnode_t *node;
+	mqpacket *mqp;
+
+	node = pck_find_fd_node(conid, connections);
+	if (node) {
+		mqp = lnode_get(node);
+		pck_send_message_struct(sockconfig.mqplib, mqp, mystruct, cols, data, destination);
+	}
+}
