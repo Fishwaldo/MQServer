@@ -1,0 +1,150 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(main.c)
+AC_CONFIG_HEADER(config.h)
+PACKAGE=MQServer
+MAJOR=0
+MINOR=0
+REV=1
+AC_DEFINE_UNQUOTED(MAJOR, $MAJOR)
+AC_DEFINE_UNQUOTED(MINOR, $MINOR)
+AC_DEFINE_UNQUOTED(REV, $REV)
+VERSION=$MAJOR.$MINOR.$REV
+AC_DEFINE_UNQUOTED(MQSERVER_PACKAGE_VERSION, "$VERSION")
+
+dnl Get system type
+AC_CANONICAL_HOST
+MYHOST=$host_os
+case "$host_os" in
+*cygwin)
+	CFLAGS="$CFLAGS -O2 -g"
+	LDFLAGS="$LDFLAGS -export-dynamic";;
+*mingw32)
+	CFLAGS="$CFLAGS -O2 -g -mno-cygwin"
+	LDFLAGS="$LDFLAGS -export-dynamic";;
+*openbsd)
+	CFLAGS="$CFLAGS -O2 -g -fPIC -DPIC"
+	LDFLAGS="-export-dynamic";;
+*)
+	CFLAGS="$CFLAGS -O2 -g -fPIC -DPIC"
+	LDFLAGS="-rdynamic";;	
+esac
+
+case "$host_os" in
+*openbsd*)
+	MAKEDEPENDENCIES="";;
+*freebsd*)
+	MAKEDEPENDENCIES="";;
+*)
+	MAKEDEPENDENCIES="-include \$(OBJS:.o=.d)";;
+esac
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_INSTALL 
+AC_CACHE_SAVE
+
+dnl Checks for libraries.
+dnl Replace `main' with a function in -ldl:
+AC_CHECK_LIB(dl, dlopen)
+
+AC_CHECK_FUNC(backtrace, 
+[AC_DEFINE(HAVE_BACKTRACE, 1, 'backtrace function available')
+LIBS="-g $LIBS"]
+)
+AC_CACHE_SAVE
+
+
+dnl Checks for header files.
+AC_HEADER_STDC
+AC_HEADER_SYS_WAIT
+AC_CHECK_HEADERS(sys/time.h unistd.h limits.h)
+AC_CACHE_SAVE
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_TYPE_SIZE_T
+AC_HEADER_TIME
+AC_STRUCT_TM
+AC_CACHE_SAVE
+
+dnl Checks for library functions.
+AC_FUNC_FNMATCH
+AC_TYPE_SIGNAL
+AC_FUNC_STRFTIME
+AC_CHECK_FUNCS(strlcpy strlcat strnlen)
+AC_CHECK_FUNCS(socket strdup)
+AC_CHECK_FUNCS(strndup)
+AC_CHECK_FUNCS(bcopy memmove strerror)
+
+
+AC_CHECK_HEADERS(sys/select.h)
+
+dnl check if we are running with Debug....
+AC_MSG_CHECKING(Whether to Enable Debuging...)
+AC_ARG_ENABLE(debug,
+[ --enable-debug - Enable Debuging],
+[ case "$enableval" in
+  yes)
+	AC_DEFINE(DEBUG, 1, 'Enable Debugging')
+	CFLAGS="$CFLAGS -ggdb -Wall"
+	AC_MSG_RESULT(yes - Watch your Log Files)
+	;;
+  *)
+	CFLAGS="$CFLAGS -DNDEBUG"
+	AC_MSG_RESULT(no)
+	;;
+  esac],
+CFLAGS="$CFLAGS -DNDEBUG"
+AC_MSG_RESULT(no)
+)
+
+AC_CACHE_SAVE
+
+dnl Set NEO_PREFIX in config.h.
+if test "x${prefix}" = "xNONE"; then
+   AC_DEFINE_UNQUOTED(NEO_PREFIX, "${ac_default_prefix}")
+else
+  AC_DEFINE_UNQUOTED(NEO_PREFIX, "${prefix}")
+fi
+
+NEO_SUBDIR_CONFIG(libevent, [--disable-shared --enable-static])
+
+AC_SUBST(LIBDB)
+AC_SUBST(MAKEDEPENDENCIES)
+AC_SUBST(DIRINST)
+AC_SUBST(CFLAGS)
+AC_SUBST(LDFLAGS)
+AC_SUBST(MODLDFLAGS)
+AC_SUBST(LINK_SIZE)
+AC_SUBST(MATCH_LIMIT)
+AC_SUBST(NEWLINE)
+AC_SUBST(UTF8)
+
+AC_SUBST(LIBS)
+AC_SUBST(PACKAGE)
+AC_SUBST(VERSION)
+AC_OUTPUT(Makefile)
+echo "(*----------------------------------------------------------*)"
+echo "(| Important Instructions                                   |)"
+echo "(*----------------------------------------------------------*)"
+echo "(| if you just typed ./configure and didnt read the README  |)"
+echo "(| NeoStats may not be configured correctly.                |)"
+echo "(| We suggest you at least type ./configure --help to see   |)"
+echo "(| available options and read the README file for further   |)"
+echo "(| information on that option.                              |)"
+echo "(*----------------------------------------------------------*)"
+echo "(| For Support please visit:                                |)"
+echo "(|    IRC:                   /server irc.irc-chat.net       |)"
+echo "(|                                   #neostats channel      |)"
+echo "(|    WWW:   http://www.neostats.net/boards/                |)"
+echo "(*----------------------------------------------------------*)"
+echo "(| Now that configure is complete, type 'make' to compile   |)"
+echo "(| the program. When the compile has completed, type        |)"
+echo "(| 'make install' to install the program.                   |)"
+echo "(| For BSD you might need to use 'gmake' and 'gmake install'|)"
+echo "(*----------------------------------------------------------*)"
+#if test "$shush" != yes; then
+#	read -p "Press Enter Key to Read the Release Notes"
+#	clear
+#	more ./RELNOTES
+#fi
