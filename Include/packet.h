@@ -31,7 +31,7 @@
 #include "xds_engine_xdr_mqs.h"
 
 /* encoding engine structs */
-#define NUMENGINES 36
+#define NUMENGINES 40
 
 #define ENG_TYPE_XDR 1
 #define ENG_TYPE_XML 2

@@ -62,6 +62,7 @@ myeng standeng[] = {
 	{ XDS_DECODE, ENG_TYPE_XDR, xdr_decode_octetstream, "octet" },
 	{ XDS_DECODE, ENG_TYPE_XDR, xdr_decode_string, "string" },
 	{ XDS_DECODE, ENG_TYPE_XDR, decode_mqs_header, "mqpheader" },
+	{ XDS_ENCODE, ENG_TYPE_XML, xml_encode_begin, "xmlstart" },
 	{ XDS_ENCODE, ENG_TYPE_XML, xml_encode_uint32, "uint32" },
 	{ XDS_ENCODE, ENG_TYPE_XML, xml_encode_int32, "int32" },
 	{ XDS_ENCODE, ENG_TYPE_XML, xml_encode_uint64, "unit64" },
@@ -71,6 +72,8 @@ myeng standeng[] = {
 	{ XDS_ENCODE, ENG_TYPE_XML, xml_encode_octetstream, "octet" },
 	{ XDS_ENCODE, ENG_TYPE_XML, xml_encode_string, "string" },
 	{ XDS_ENCODE, ENG_TYPE_XML, encode_mqs_header, "mqpheader" },
+	{ XDS_ENCODE, ENG_TYPE_XML, xml_encode_end, "xmlstop" },
+	{ XDS_DECODE, ENG_TYPE_XML, xml_decode_begin, "xmlstart" },
 	{ XDS_DECODE, ENG_TYPE_XML, xml_decode_uint32, "uint32" },
 	{ XDS_DECODE, ENG_TYPE_XML, xml_decode_int32, "int32" },
 	{ XDS_DECODE, ENG_TYPE_XML, xml_decode_uint64, "unit64" },
@@ -80,6 +83,7 @@ myeng standeng[] = {
 	{ XDS_DECODE, ENG_TYPE_XML, xml_decode_octetstream, "octet" },
 	{ XDS_DECODE, ENG_TYPE_XML, xml_decode_string, "string" },
 	{ XDS_DECODE, ENG_TYPE_XML, decode_mqs_header, "mqpheader" },
+	{ XDS_DECODE, ENG_TYPE_XML, xml_decode_end, "xmlstop" },
 };
 
 

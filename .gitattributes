@@ -22,6 +22,7 @@ Include/mythread.h -text
 Include/packet.h -text
 Include/serversock.h -text
 Include/sock.h -text
+Include/tcprioq.h -text
 Include/version.h -text
 Include/xds.h -text
 Include/xds.h.in -text
@@ -55,6 +56,7 @@ Server/list.c -text
 Server/log.c -text
 Server/main.c -text
 Server/mythread.c -text
+Server/prioq.c -text
 Server/serversock.c -text
 /aclocal.m4 -text
 adns/Makefile -text

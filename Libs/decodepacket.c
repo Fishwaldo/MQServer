@@ -58,7 +58,7 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 	}
 	/* lets use a switch here to handle it intelegently */
 
-	rc = xds_decode (mqp->xdsin, "mqpheader", mqp);
+	rc = xds_decode (mqp->xdsin, "xmlstart mqpheader", mqp);
 	switch (rc) {
 		case XDS_OK:
 			usedbuf = xds_get_usedbuffer (mqp->xdsin);

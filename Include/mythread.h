@@ -25,7 +25,9 @@
 
 #ifndef MYTHREAD_H
 #define MYTHREAD_H
-
+#include "config.h"
+#include "defines.h"
+#include "list.h"
 
 
 list_t *threads;

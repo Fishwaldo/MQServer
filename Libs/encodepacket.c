@@ -53,7 +53,7 @@ int pck_prepare(mqp *mqplib, mqpacket *mqp, int type) {
 		mqp->outmsg.VERSION = 1;
 		mqp->outmsg.MSGTYPE = type;
 		mqp->outmsg.flags = 9;
-		rc = xds_encode (mqp->xdsout, "mqpheader", mqp);
+		rc = xds_encode (mqp->xdsout, "xmlstart mqpheader", mqp);
 		if (rc != XDS_OK) {
 			if (mqplib->logger)
 				mqplib->logger ("xds encode header failed %d.", rc);

@@ -55,7 +55,7 @@ am_mqserver_OBJECTS = main.$(OBJEXT) serversock.$(OBJEXT) \
 	callback.$(OBJEXT) client.$(OBJEXT) dns.$(OBJEXT) \
 	admincli.$(OBJEXT) libcli.$(OBJEXT) list.$(OBJEXT) \
 	hash.$(OBJEXT) conf.$(OBJEXT) dict.$(OBJEXT) dotconf.$(OBJEXT) \
-	log.$(OBJEXT) mythread.$(OBJEXT)
+	log.$(OBJEXT) mythread.$(OBJEXT) prioq.$(OBJEXT)
 mqserver_OBJECTS = $(am_mqserver_OBJECTS)
 mqserver_DEPENDENCIES =
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/Include
@@ -181,7 +181,7 @@ xds_uint16_t = @xds_uint16_t@
 xds_uint32_t = @xds_uint32_t@
 xds_uint64_t = @xds_uint64_t@
 xds_uint8_t = @xds_uint8_t@
-mqserver_SOURCES = main.c serversock.c callback.c client.c dns.c admincli.c libcli.c list.c hash.c conf.c dict.c dotconf.c log.c mythread.c
+mqserver_SOURCES = main.c serversock.c callback.c client.c dns.c admincli.c libcli.c list.c hash.c conf.c dict.c dotconf.c log.c mythread.c prioq.c
 mqserver_LDADD = -L$(top_srcdir)/Libs/ -lmqpacket -L$(top_srcdir)/libevent/ -levent -L$(top_srcdir)/adns/ -ladns -lpthread -lcrypt
 AM_CFLAGS = -I$(top_srcdir)/Include -I$(top_srcdir)/adns -I$(top_srcdir)/libevent -DNDEBUG -ggdb 
 LINK = @echo "Linking $@"; $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
@@ -271,6 +271,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/log.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mythread.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/prioq.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/serversock.Po@am__quote@
 
 mostlyclean-libtool:
