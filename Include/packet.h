@@ -219,7 +219,7 @@ unsigned long pck_send_auth(mqp *mqplib, mqpacket *mqp, char *username, char *pa
 unsigned long pck_send_clntcap(mqp *mqplib, mqpacket *mqp);
 unsigned long pck_send_queueinfo(mqp *mqplib, mqpacket *mqpck, char *queue, char *info, int flags);
 unsigned long pck_send_queue_mes(mqp *mqplib, mqpacket *mqpck, char *queue, char *topic, void *data, size_t len, unsigned long messid, long timestamp, char *from);
-
+xds_t * pck_init_engines (mqp *mqplib, int type, int direction);
 
 /* this is the standalone un-threadsafe interface */
 typedef int (actioncbfunc)(int, void *);

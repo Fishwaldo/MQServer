@@ -122,10 +122,36 @@ void pck_set_data(mqpacket *mqp, void *data) {
 }
 
 
+xds_t * 
+pck_init_engines (mqp *mqplib, int type, int direction) {
+	int i, rc = 0;
+	xds_t *xds;
+	if (xds_init (&xds, direction) != XDS_OK) {
+		if (mqplib->logger)
+			mqplib->logger ("xds init failed: %s", strerror (errno));
+		return NULL;
+	}
+	i = 0;
+	while (i < NUMENGINES) {
+		if (mqplib->myengines[i].type == type) {
+			if (mqplib->myengines[i].dir == direction) {
+				rc = xds_register (xds, mqplib->myengines[i].myname, mqplib->myengines[i].ptr, NULL);
+			}
+			if (rc != XDS_OK) {
+				if (mqplib->logger)
+					mqplib->logger ("xds_register failed for %s", mqplib->myengines[i].myname);
+				xds_destroy (xds);
+				return NULL;
+			}
+		}
+		i++;
+	}
+	return xds;
+}
+
 mqpacket *
 pck_new_connection (mqp *mqplib, int fd, int type, int contype)
 {
-	int i, rc;
 	mqpacket *mqpck;
 	
 	mqpck = malloc (sizeof (mqpacket));
@@ -133,7 +159,11 @@ pck_new_connection (mqp *mqplib, int fd, int type, int contype)
 	mqpck->sock = fd;
 	mqpck->outmsg.MID = -1;
 	mqpck->nxtoutmid = 1;
-		
+	mqpck->xdsin = pck_init_engines(mqplib, type, XDS_DECODE);
+	mqpck->xdsout = pck_init_engines(mqplib, type, XDS_ENCODE);
+	
+
+#if 0
 	if (xds_init (&mqpck->xdsin, XDS_DECODE) != XDS_OK) {
 		if (mqplib->logger)
 			mqplib->logger ("xds init failed: %s", strerror (errno));
@@ -165,6 +195,7 @@ pck_new_connection (mqp *mqplib, int fd, int type, int contype)
 		}
 		i++;
 	}
+#endif		
 	mqpck->wiretype = type;	
 	switch (contype) {
 		case PCK_IS_CLIENT:

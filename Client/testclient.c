@@ -51,7 +51,7 @@ structentry testdataentry[] = {
 	{
 		STR_PSTR,	/* its a pointer to a string */
 		0,		/* pointers are unknown, have to use a callback */
-		0, 		/* for callbacks, no offset is required */
+		offsetof(struct testdata, name), /* for callbacks, no offset is required */
 		readstr
 	},
 	{
@@ -68,6 +68,7 @@ structentry testdataentry[] = {
 	}
 };
 testdata *tmp;
+testdata *tmp2;
 	
 					
 void *readstr(void *data, size_t *size) {
@@ -90,6 +91,10 @@ int gotaction(int type, void *cbarg) {
 			break;
 		case PCK_SMP_MSGFROMQUEUE:
 			sd = pck_get_msgfromqueue(conid);
+			tmp2 = malloc(sizeof(testdata));
+			printf("%p %p %p %p\n", tmp2, tmp2->name, tmp2->size, tmp2->testdata);
+			pck_decode_message(sd, testdataentry,(sizeof(testdataentry)/sizeof(structentry)), tmp2);
+			printf("got %s %d %s\n", tmp2->name, tmp2->size, tmp2->testdata);
 			printf("queue %s topic %s messid %d time %d from %s\n", sd->queue, sd->topic, sd->messid, sd->timestamp, sd->from);
 	}			
 

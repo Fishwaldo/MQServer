@@ -472,11 +472,57 @@ mq_data_senddata
 	return NULL;
 }
 
-void 
-*pck_decode_message(mq_data_senddata *sd, structentry *mystruct, int cols, void *target) {
-	/* XXX This needs some thinking about. Not tonight! */
+int 
+pck_decode_message(mq_data_senddata *sd, structentry *mystruct, int cols, void *target) {
+	xds_t *xdstmp;
+	void *destptr;
+	char *string;
+	int i, rc, myint;
 
+	
+	xdstmp = pck_init_engines(sockconfig.mqplib, ENG_TYPE_XML, XDS_DECODE);
+	if (xdstmp == NULL)  {
+		pck_logger("pck_decode_message xds init failed");
+		return NS_FAILURE;
+	}
 
+	if (xds_setbuffer (xdstmp, XDS_LOAN, sd->data, sd->len) != XDS_OK) {
+		pck_logger("pck_decode_message XDS setbuffer Failed");
+	        return NS_FAILURE;
+	}
 
-
+	for (i = 0; i < cols; i++) {
+		switch (mystruct[i].type) {
+			case STR_PSTR:
+				rc = xds_decode(xdstmp, "string", &string);
+				if (rc == XDS_OK) {
+					destptr = (void *) target + mystruct[i].offset;
+					*(char **)destptr = strndup(string, strlen(string));
+				} else {
+					pck_logger("pck_decode_message, STR_PSTR failed\n");
+				}			
+				break;
+			case STR_INT:
+				rc = xds_decode(xdstmp, "int32", &myint);
+				if (rc == XDS_OK) {
+					destptr = (void *) target + mystruct[i].offset;
+					*((int *)destptr) = myint;
+				} else {
+					pck_logger("pck_decode_message, STR_INT failed\n");
+				}			
+				break;
+			case STR_STR:
+				rc = xds_decode(xdstmp, "string", &string);
+				if (rc == XDS_OK) {
+					destptr = (void *) target + mystruct[i].offset;
+					strncpy((char *)destptr, string, mystruct[i].size);			
+				} else {
+					pck_logger("pck_decode_message, STR_STR failed\n");
+				}			
+				break;
+			default:
+				pck_logger( "pck_decode_message, unknown type");
+		}
+	}
+	return NS_SUCCESS;
 }

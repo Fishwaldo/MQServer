@@ -97,7 +97,7 @@ NEO_SUBDIR_CONFIG(libevent, [--disable-shared --enable-static])
 dnl NEO_SUBDIR_CONFIG(sqlite, [--enable-static --disable-shared --enable-tempdb-in-ram --enable-incore-db])
 
 AC_OUTPUT(Makefile Server/Makefile Libs/Makefile Include/xds.h
-Client/Makefile confuse/Makefile)
+Client/Makefile confuse/Makefile adns/config.h)
 echo "(*----------------------------------------------------------*)"
 echo "(| Important Instructions                                   |)"
 echo "(*----------------------------------------------------------*)"

@@ -24437,7 +24437,7 @@ fi
 
 
 
-                                                            ac_config_files="$ac_config_files Makefile Server/Makefile Libs/Makefile Include/xds.h Client/Makefile confuse/Makefile"
+                                                                      ac_config_files="$ac_config_files Makefile Server/Makefile Libs/Makefile Include/xds.h Client/Makefile confuse/Makefile adns/config.h"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -25021,6 +25021,7 @@ do
   "Include/xds.h" ) CONFIG_FILES="$CONFIG_FILES Include/xds.h" ;;
   "Client/Makefile" ) CONFIG_FILES="$CONFIG_FILES Client/Makefile" ;;
   "confuse/Makefile" ) CONFIG_FILES="$CONFIG_FILES confuse/Makefile" ;;
+  "adns/config.h" ) CONFIG_FILES="$CONFIG_FILES adns/config.h" ;;
   "depfiles" ) CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
   "default-1" ) CONFIG_COMMANDS="$CONFIG_COMMANDS default-1" ;;
   "Include/config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS Include/config.h" ;;

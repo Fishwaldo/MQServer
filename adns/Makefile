@@ -1,5 +1,5 @@
 
-INCLUDES = -I..
+INCLUDES = -I.. -I../Include/
 
 SRCS = check.c event.c general.c parse.c query.c reply.c setup.c transmit.c types.c
 OBJS = ${SRCS:.c=.o}
@@ -35,12 +35,3 @@ dist:
 
 $(OBJS): Makefile 
 
-check.o: check.c internal.h config.h adns.h dlist.h
-event.o: event.c internal.h config.h adns.h dlist.h tvarith.h
-general.o: general.c internal.h config.h adns.h dlist.h
-parse.o: parse.c internal.h config.h adns.h dlist.h
-query.o: query.c internal.h config.h adns.h dlist.h
-reply.o: reply.c internal.h config.h adns.h dlist.h
-setup.o: setup.c internal.h config.h adns.h dlist.h
-transmit.o: transmit.c internal.h config.h adns.h dlist.h tvarith.h
-types.o: types.c internal.h config.h adns.h dlist.h
