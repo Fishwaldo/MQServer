@@ -4,6 +4,7 @@ Include/conf.h -text
 Include/config.h.in -text
 Include/defines.h -text
 Include/dict.h -text
+Include/dns.h -text
 Include/dotconf.h -text
 Include/hash.h -text
 Include/list.h -text
@@ -14,6 +15,7 @@ Include/version.h -text
 Server/client.c -text
 Server/conf.c -text
 Server/dict.c -text
+Server/dns.c -text
 Server/dotconf.c -text
 Server/hash.c -text
 Server/list.c -text
