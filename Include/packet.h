@@ -232,6 +232,7 @@ unsigned long pck_simple_send_message_struct(int conid, structentry *mystruct, i
 unsigned long pck_simple_joinqueue(int conid, char *queue, int flags, char *filter);
 mq_data_joinqueue *pck_get_queueinfo(int conid);
 mq_data_senddata *pck_get_msgfromqueue(int conid);
+int pck_decode_message(mq_data_senddata *sd, structentry *mystruct, int cols, void *target);
 
 /* these are error defines */
 #define PCK_ERR_BUFFULL		1

@@ -85,7 +85,6 @@ void MQS_client_activity(int fd, short eventtype, void *arg) {
 		rc = write_fd(mqssetup.mqplib, mqs->mqp);
 	}
 	if (rc == NS_FAILURE) {
-printf("kill\n");
 		MQS_remove_client(mqs);			
 	}
 

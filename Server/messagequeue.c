@@ -76,19 +76,23 @@ void *init_messqueue(void *arg) {
 
 			switch (mqi->type) {
 				case MQI_TYPE_NEWCLNT:
+printf("newclnt\n");
 					mq_new_client(mqi);
 					break;
 				case MQI_TYPE_DELCLNT:
+printf("delclnt\n");
 					mq_del_client(mqi);
 					break;
 				case MQI_TYPE_JOINQ:
+printf("joinq\n");
 					mq_join_queue(mqi, messq);
 					break;
 				case MQI_TYPE_MES:
+printf("msg\n");
 					mq_send_msg(mqi, messq);
 					break;
 				default:
-					nlog(LOG_WARNING, LOG_CORE, "Unknown Message Type %d in MessageQueue, Discarding", mqi->type);
+					nlog(LOG_WARNING, LOG_CORE, "MQ Unknown Message Type %d in MessageQueue, Discarding", mqi->type);
 					break;
 			}
 
@@ -148,7 +152,7 @@ void mq_join_queue(messqitm *mqi, myqueues *messq) {
 	/* find the client */
 	cli = find_client(mqi->conid);
 	if (!cli) {
-		nlog(LOG_WARNING, LOG_CORE, "Can't Find Client %ld for joinqueue", mqi->conid);
+		nlog(LOG_WARNING, LOG_CORE, "MQ Can't Find Client %ld for joinqueue", mqi->conid);
 		return;
 	}
 	/* lock the client */
@@ -157,7 +161,7 @@ void mq_join_queue(messqitm *mqi, myqueues *messq) {
 	/* test to make sure the client isn't already a member of the queue */
 	if (hash_lookup(cli->queues, mqi->data.joinqueue.queue)) {
 		/* already a member, just drop silently */
-		nlog(LOG_WARNING, LOG_CORE, "Client %s is already a member of queue %s", cli->username, mqi->data.joinqueue.queue);
+		nlog(LOG_WARNING, LOG_CORE, "MQ Client %s is already a member of queue %s", cli->username, mqi->data.joinqueue.queue);
 		MYUNLOCK(&cli->lock);
 		return;
 	}
@@ -181,7 +185,7 @@ void mq_join_queue(messqitm *mqi, myqueues *messq) {
 	
 	node = hnode_create(que);
 	hash_insert(cli->queues, node, que->name);
-	nlog(LOG_DEBUG1, LOG_CORE, "Joined Client %s to Queue %s", cli->username, que->name);
+	nlog(LOG_DEBUG1, LOG_CORE, "MQ Joined Client %s to Queue %s", cli->username, que->name);
 	
 	/* XXX send queueinfo to the client */
 	sndmqi = malloc(sizeof(messqitm));
@@ -192,7 +196,7 @@ void mq_join_queue(messqitm *mqi, myqueues *messq) {
 	sndmqi->data.joinqueue.filter[0] = '\0';
 	sndmqi->data.joinqueue.flags = que->clntflags;
 	pthread_mutex_lock(&messq->mutex);
-	nlog(LOG_DEBUG1, LOG_CORE, "Sending Queueinfo to %s for queue %s",cli->username, que->name);
+	nlog(LOG_DEBUG1, LOG_CORE, "MQ Sending Queueinfo to %s for queue %s",cli->username, que->name);
 	tcprioq_add(messq->outqueue, (void *)sndmqi);
 	pthread_mutex_unlock(&messq->mutex);
 	/* unlock the locks */
@@ -211,7 +215,7 @@ void mq_send_msg(messqitm *mqi, myqueues *messq) {
 	/* find the client */
 	sendcli = find_client(mqi->conid);
 	if (!sendcli) {
-		nlog(LOG_WARNING, LOG_CORE, "Can't Find Client %ld for sendmsg", mqi->conid);
+		nlog(LOG_WARNING, LOG_CORE, "MQ Can't Find Client %ld for sendmsg", mqi->conid);
 		return;
 	}
 	/* lock the client */
@@ -221,7 +225,7 @@ void mq_send_msg(messqitm *mqi, myqueues *messq) {
 	que = find_queue(mqi->data.msg.queue);
 	if (!que) {
 		/* if the queue doesn't exist, drop the message */
-		nlog(LOG_WARNING, LOG_CORE, "Can't find Queue %s for client %s message", mqi->data.msg.queue, sendcli->username);
+		nlog(LOG_WARNING, LOG_CORE, "MQ Can't find Queue %s for client %s message", mqi->data.msg.queue, sendcli->username);
 		MYUNLOCK(&sendcli->lock);
 	}
 	MYLOCK(&que->lock);
@@ -261,7 +265,7 @@ void mq_send_msg(messqitm *mqi, myqueues *messq) {
 		sndmqi->data.sndmsg.msg = malloc(mqi->data.msg.len+1);
 		strncpy(sndmqi->data.sndmsg.msg, mqi->data.msg.msg, mqi->data.msg.len);
 		pthread_mutex_lock(&messq->mutex);
-		nlog(LOG_DEBUG1, LOG_CORE, "Sending Message from %s to %s on queue %s", sendcli->username, rcptqm->cli->username, que->name);
+		nlog(LOG_DEBUG1, LOG_CORE, "MQ Sending Message from %s to %s on queue %s", sendcli->username, rcptqm->cli->username, que->name);
 		tcprioq_add(messq->outqueue, (void *)sndmqi);
 		pthread_mutex_unlock(&messq->mutex);
 	}						

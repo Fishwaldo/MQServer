@@ -119,7 +119,6 @@ int main() {
 	conid = pck_make_connection("snoopy", "fish", "haha", 0, NULL, gotaction);
 	while (rc == 1) {
 		rc = pck_process();
-		sleep(1);
 	}
 }
 
