@@ -57,11 +57,12 @@ int pck_simple_callback(void *mqplib, mqpacket *mqp) {
 	switch (mqp->inmsg.MSGTYPE) {
 		case PCK_ACK:
 			if (MQS_S_FLAG_IS_GOTSRVCAP(mqp)) {
-				pck_logger("Got CLNTCAP ACK\n");
+				pck_logger("Got CLNTCAP ACK");
 				MQS_S_FLAG_SET_SENTAUTH(mqp);
 				pck_send_auth(mqplib, mqp, mqp->si.username, mqp->si.password);
+printf("%s %s\n", mqp->si.username, mqp->si.password);
 			} else if (MQS_S_FLAG_IS_SENTAUTH(mqp)) {
-				pck_logger("login Ack'd\n");
+				pck_logger("login Ack'd");
 				MQS_S_FLAG_SET_CONNECTOK(mqp);
 			}
 			break;
@@ -72,10 +73,10 @@ int pck_simple_callback(void *mqplib, mqpacket *mqp) {
 			break;
 		case PCK_ERROR:
 			if (MQS_S_FLAG_IS_GOTSRVCAP(mqp)) {
-				pck_logger("Server rejected out clientcap for %s\n", mqp->inmsg.data.string);
+				pck_logger("Server rejected out clientcap for %s", mqp->inmsg.data.string);
 				return NS_FAILURE;
 			} else if (MQS_S_FLAG_IS_SENTAUTH(mqp)) {
-				pck_logger("Server rejected out Login: %s\n", mqp->inmsg.data.string);
+				pck_logger("Server rejected out Login: %s", mqp->inmsg.data.string);
 				return NS_FAILURE;
 			}
 			break;
@@ -116,7 +117,7 @@ int debug_socket(int i) {
 }
 
 int enable_server(int port) {
-	sockconfig.listport = 8888;
+	sockconfig.listport = 8889;
 	return NS_SUCCESS;
 }
 
@@ -354,7 +355,7 @@ pck_make_connection (char *hostname, char *username, char *password, long flags,
 			return NS_FAILURE;
 		}
 		sa.sin_family = AF_INET;
-		sa.sin_port = htons(8888);
+		sa.sin_port = htons(8889);
 		bcopy(hp->h_addr, (char *) &sa.sin_addr, hp->h_length);
 	} else {
 		sa.sin_addr.s_addr = ipad.s_addr;
@@ -378,7 +379,9 @@ pck_make_connection (char *hostname, char *username, char *password, long flags,
 			return NS_FAILURE;
 		}
 	}
-	mqp = pck_new_connection (sockconfig.mqplib, s, ENG_TYPE_XDR, PCK_IS_SERVER);
+	mqp = pck_new_connection (sockconfig.mqplib, s, ENG_TYPE_XML, PCK_IS_SERVER);
+	mqp->si.username = malloc(strlen(username));
+	mqp->si.password = malloc(strlen(password));	
 
 	snprintf(mqp->si.username, BUFSIZE, "%s", username);
 	snprintf(mqp->si.password, BUFSIZE, "%s", password);

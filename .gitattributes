@@ -40,8 +40,10 @@ Libs/xds_engine_xml.c -text
 Libs/xds_version.c -text
 /Makefile.am -text
 /Makefile.in -text
+Server/Makefile.am -text
 Server/Makefile.in -text
 Server/admincli.c -text
+Server/callback.c -text
 Server/client.c -text
 Server/conf.c -text
 Server/dict.c -text

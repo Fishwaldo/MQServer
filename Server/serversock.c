@@ -42,6 +42,7 @@
 #include "serversock.h"
 #include "xds.h"
 #include "admincli.h"
+#include "callback.h"
 #include "mythread.h"
 
 int MQS_listen_on_port(int port, long type);
@@ -111,6 +112,7 @@ void MQS_listen_accept(int fd, short eventtype, void *arg) {
 	 		break;
  		default:
  			nlog(LOG_CRITICAL, LOG_CORE, "Invalid Listen type %ld", mqs->type);
+			free(newmqs);
 	 		return;
  			break;
 	}	
@@ -135,12 +137,14 @@ void MQS_listen_accept(int fd, short eventtype, void *arg) {
 void got_dns(mqsock *mqs) {
 	if (MQC_IS_TYPE_CLIENT_XDR(mqs)) {
 		mqs->mqp = pck_new_connection(mqssetup.mqplib, mqs->data.fd, ENG_TYPE_XDR, PCK_IS_CLIENT);
+		pck_set_data(mqs->mqp, (void *)mqs);
 		event_set(&mqs->ev, mqs->data.fd, EV_READ|EV_PERSIST, MQS_client_activity, mqs);
 		event_add(&mqs->ev, NULL);	
 		mqs->node = lnode_create(mqs);
   		list_append(mqssetup.connections, mqs->node);
 	} else if (MQC_IS_TYPE_CLIENT_XML(mqs)) {
 		mqs->mqp = pck_new_connection(mqssetup.mqplib, mqs->data.fd, ENG_TYPE_XML, PCK_IS_CLIENT);
+		pck_set_data(mqs->mqp, (void *)mqs);
 		event_set(&mqs->ev, mqs->data.fd, EV_READ|EV_PERSIST, MQS_client_activity, mqs);
 		event_add(&mqs->ev, NULL);	
 		mqs->node = lnode_create(mqs);
@@ -175,31 +179,39 @@ MQS_sock_start ()
 
 	mqssetup.mqplib = init_mqlib();
 	pck_set_logger(mqssetup.mqplib, MQS_Logger);
+	pck_set_callback(mqssetup.mqplib, MQS_Callback);
 
 	event_init();
 
 	mqssetup.xdrport = 8888;
+	mqssetup.xmlport = 8889;
 	mqssetup.adminport = 8887;
 
 	if (MQS_listen_on_port(mqssetup.xdrport, MQC_TYPE_LISTEN_XDR) != NS_SUCCESS) {
 		do_exit(NS_EXIT_ERROR, "Can't Create Client Port");
 		return;
 	}
+
+	if (MQS_listen_on_port(mqssetup.xmlport, MQC_TYPE_LISTEN_XML) != NS_SUCCESS) {
+		do_exit(NS_EXIT_ERROR, "Can't Create Client Port");
+		return;
+	}
+	
 	if (MQS_listen_on_port(mqssetup.adminport, MQC_TYPE_LISTEN_ADMIN) != NS_SUCCESS) {
 		do_exit(NS_EXIT_ERROR, "Can't create Admin Port");
 		return;
 	}
 	
 	/* setup DNS to run every so often */
-	/* XXX hook adns into fd functions rather than a timeout */
 	evtimer_set(&dnstimeout, check_dns, &dnstimeout);
 	timerclear(&tv);
 	tv.tv_sec = 1;	
 	event_add(&dnstimeout, &tv);
 	
-	/* Here is our network main loop */
 	while (1) {
 		SET_SEGV_LOCATION();
+
+/* 		setup_dns_socks(); */
 
 		event_loop(EVLOOP_ONCE);
 		if (me.die) {

@@ -31,7 +31,7 @@
 #include "xds_engine_xdr_mqs.h"
 
 /* encoding engine structs */
-#define NUMENGINES 30
+#define NUMENGINES 36
 
 #define ENG_TYPE_XDR 1
 #define ENG_TYPE_XML 2
@@ -90,8 +90,8 @@ struct mq_data_srvcap {
 } mq_data_srvcap;
 
 struct mq_data_auth {
-	char username[BUFSIZE];
-	char password[BUFSIZE];
+	char *username;
+	char *password;
 	char host[BUFSIZE];
 	long flags;
 } mq_data_auth;
@@ -117,6 +117,7 @@ typedef struct mqpacket {
 	int sock;
 	int pollopts;
 	int flags;
+	int wiretype;
 	struct mq_data_auth si;
 	void *cbarg;
 	void *buffer;
@@ -161,12 +162,13 @@ extern int decode_mqs_header (xds_t * xds, void *engine_context, void *buffer, s
 void pck_set_logger(mqp *, logfunc *logger);
 void pck_set_callback(mqp *, callbackfunc *);
 void pck_set_authcallback(mqp *, connectauthfunc *);
+void pck_set_data(mqpacket *, void *);
 mqp *init_mqlib ();
 int read_fd (mqp *mqplib, mqpacket *mqp);
 int close_fd (mqp *mqplib, mqpacket * mqp);
 int write_fd (mqp *mqplib, mqpacket * mqp);
 mqpacket * pck_new_connection (mqp *mqplib, int fd, int type, int contype);
-void print_decode(void *buf, size_t len);
+void print_decode(mqpacket *, int what);
 int pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long buflen);
 unsigned long send_ack(mqp *mqplib, mqpacket *mqp, int MID);
 

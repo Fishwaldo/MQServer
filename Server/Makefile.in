@@ -52,10 +52,10 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
 am_mqserver_OBJECTS = main.$(OBJEXT) serversock.$(OBJEXT) \
-	client.$(OBJEXT) dns.$(OBJEXT) admincli.$(OBJEXT) \
-	libcli.$(OBJEXT) list.$(OBJEXT) hash.$(OBJEXT) conf.$(OBJEXT) \
-	dict.$(OBJEXT) dotconf.$(OBJEXT) log.$(OBJEXT) \
-	mythread.$(OBJEXT)
+	callback.$(OBJEXT) client.$(OBJEXT) dns.$(OBJEXT) \
+	admincli.$(OBJEXT) libcli.$(OBJEXT) list.$(OBJEXT) \
+	hash.$(OBJEXT) conf.$(OBJEXT) dict.$(OBJEXT) dotconf.$(OBJEXT) \
+	log.$(OBJEXT) mythread.$(OBJEXT)
 mqserver_OBJECTS = $(am_mqserver_OBJECTS)
 mqserver_DEPENDENCIES =
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/Include
@@ -181,7 +181,7 @@ xds_uint16_t = @xds_uint16_t@
 xds_uint32_t = @xds_uint32_t@
 xds_uint64_t = @xds_uint64_t@
 xds_uint8_t = @xds_uint8_t@
-mqserver_SOURCES = main.c serversock.c client.c dns.c admincli.c libcli.c list.c hash.c conf.c dict.c dotconf.c log.c mythread.c
+mqserver_SOURCES = main.c serversock.c callback.c client.c dns.c admincli.c libcli.c list.c hash.c conf.c dict.c dotconf.c log.c mythread.c
 mqserver_LDADD = -L$(top_srcdir)/Libs/ -lmqpacket -L$(top_srcdir)/libevent/ -levent -L$(top_srcdir)/adns/ -ladns -lpthread -lcrypt
 AM_CFLAGS = -I$(top_srcdir)/Include -I$(top_srcdir)/adns -I$(top_srcdir)/libevent -DNDEBUG -ggdb 
 LINK = @echo "Linking $@"; $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
@@ -259,6 +259,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/admincli.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/callback.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/client.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/conf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dict.Po@am__quote@

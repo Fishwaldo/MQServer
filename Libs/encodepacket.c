@@ -43,7 +43,6 @@
 #define CLNTCAP2 3
 
 unsigned long pck_commit_data (mqp * mqplib, mqpacket * mqpck);
-void print_decode(void *buf, size_t len);
 
 
 
@@ -53,6 +52,7 @@ int pck_prepare(mqp *mqplib, mqpacket *mqp, int type) {
 		mqp->outmsg.MID = mqp->nxtoutmid++;
 		mqp->outmsg.VERSION = 1;
 		mqp->outmsg.MSGTYPE = type;
+		mqp->outmsg.flags = 9;
 		rc = xds_encode (mqp->xdsout, "mqpheader", mqp);
 		if (rc != XDS_OK) {
 			if (mqplib->logger)
@@ -171,7 +171,6 @@ unsigned long pck_send_auth(mqp *mqplib, mqpacket *mqp, char *username, char *pa
 	if (pck_prepare(mqplib, mqp, PCK_AUTH) != NS_SUCCESS) {
 		return NS_FAILURE;
 	}
-
 	rc = xds_encode (mqp->xdsout, PCK_AUTH_FMT, username, password);
 
 	if (rc != XDS_OK) {
@@ -195,7 +194,7 @@ pck_commit_data (mqp * mqplib, mqpacket * mqpck)
 			mqplib->logger ("OutBuffer is Full. %d", rc);
 		return NS_FAILURE;
 	}
-	print_decode(mqpck->outbuffer, mqpck->outbufferlen);
+	print_decode(mqpck, 2);
 	write_fd(mqplib, mqpck);
 	rc = mqpck->outmsg.MID;
 	pck_remove(mqplib, mqpck);

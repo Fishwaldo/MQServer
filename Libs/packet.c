@@ -62,24 +62,24 @@ myeng standeng[] = {
 	{ XDS_DECODE, ENG_TYPE_XDR, xdr_decode_octetstream, "octet" },
 	{ XDS_DECODE, ENG_TYPE_XDR, xdr_decode_string, "string" },
 	{ XDS_DECODE, ENG_TYPE_XDR, decode_mqs_header, "mqpheader" },
-	{ XDS_DECODE, ENG_TYPE_XML, xml_encode_uint32, "uint32" },
-	{ XDS_DECODE, ENG_TYPE_XML, xml_encode_int32, "int32" },
-	{ XDS_DECODE, ENG_TYPE_XML, xml_encode_uint64, "unit64" },
-	{ XDS_DECODE, ENG_TYPE_XML, xml_encode_int64, "int64" },
-	{ XDS_DECODE, ENG_TYPE_XML, xml_encode_float, "float" },
-	{ XDS_DECODE, ENG_TYPE_XML, xml_encode_double, "double" },
-	{ XDS_DECODE, ENG_TYPE_XML, xml_encode_octetstream, "octet" },
-	{ XDS_DECODE, ENG_TYPE_XML, xml_encode_string, "string" },
-	{ XDS_DECODE, ENG_TYPE_XML, decode_mqs_header, "mqpheader" },
-	{ XDS_ENCODE, ENG_TYPE_XML, xml_decode_uint32, "uint32" },
-	{ XDS_ENCODE, ENG_TYPE_XML, xml_decode_int32, "int32" },
-	{ XDS_ENCODE, ENG_TYPE_XML, xml_decode_uint64, "unit64" },
-	{ XDS_ENCODE, ENG_TYPE_XML, xml_decode_int64, "int64" },
-	{ XDS_ENCODE, ENG_TYPE_XML, xml_decode_float, "float" },
-	{ XDS_ENCODE, ENG_TYPE_XML, xml_decode_double, "double" },
-	{ XDS_ENCODE, ENG_TYPE_XML, xml_decode_octetstream, "octet" },
-	{ XDS_ENCODE, ENG_TYPE_XML, xml_decode_string, "string" },
+	{ XDS_ENCODE, ENG_TYPE_XML, xml_encode_uint32, "uint32" },
+	{ XDS_ENCODE, ENG_TYPE_XML, xml_encode_int32, "int32" },
+	{ XDS_ENCODE, ENG_TYPE_XML, xml_encode_uint64, "unit64" },
+	{ XDS_ENCODE, ENG_TYPE_XML, xml_encode_int64, "int64" },
+	{ XDS_ENCODE, ENG_TYPE_XML, xml_encode_float, "float" },
+	{ XDS_ENCODE, ENG_TYPE_XML, xml_encode_double, "double" },
+	{ XDS_ENCODE, ENG_TYPE_XML, xml_encode_octetstream, "octet" },
+	{ XDS_ENCODE, ENG_TYPE_XML, xml_encode_string, "string" },
 	{ XDS_ENCODE, ENG_TYPE_XML, encode_mqs_header, "mqpheader" },
+	{ XDS_DECODE, ENG_TYPE_XML, xml_decode_uint32, "uint32" },
+	{ XDS_DECODE, ENG_TYPE_XML, xml_decode_int32, "int32" },
+	{ XDS_DECODE, ENG_TYPE_XML, xml_decode_uint64, "unit64" },
+	{ XDS_DECODE, ENG_TYPE_XML, xml_decode_int64, "int64" },
+	{ XDS_DECODE, ENG_TYPE_XML, xml_decode_float, "float" },
+	{ XDS_DECODE, ENG_TYPE_XML, xml_decode_double, "double" },
+	{ XDS_DECODE, ENG_TYPE_XML, xml_decode_octetstream, "octet" },
+	{ XDS_DECODE, ENG_TYPE_XML, xml_decode_string, "string" },
+	{ XDS_DECODE, ENG_TYPE_XML, decode_mqs_header, "mqpheader" },
 };
 
 
@@ -112,6 +112,11 @@ void
 pck_set_authcallback(mqp *mqplib, connectauthfunc *ca) {
 	mqplib->connectauth = ca;
 }
+
+void pck_set_data(mqpacket *mqp, void *data) {
+	mqp->cbarg = data;
+}
+
 
 mqpacket *
 pck_new_connection (mqp *mqplib, int fd, int type, int contype)
@@ -156,7 +161,7 @@ pck_new_connection (mqp *mqplib, int fd, int type, int contype)
 		}
 		i++;
 	}
-	
+	mqpck->wiretype = type;	
 	switch (contype) {
 		case PCK_IS_CLIENT:
 			pck_send_srvcap(mqplib, mqpck);
@@ -180,6 +185,10 @@ pck_del_connection (mqp *mqplib, mqpacket * mqpck)
 #endif
 	xds_destroy (mqpck->xdsout);
 	xds_destroy (mqpck->xdsin);
+	if (mqpck->si.username) {
+		free(mqpck->si.username);
+		free(mqpck->si.password);
+	}
 	free (mqpck);
 
 }
@@ -226,6 +235,7 @@ close_fd (mqp *mqplib, mqpacket * mqp)
 		mqplib->logger ("Closing %d fd", mqp->sock);
 	}
 	pck_del_connection (mqplib, mqp);
+
 	close (mqp->sock);
 	return NS_SUCCESS;
 }
@@ -278,6 +288,7 @@ write_fd (mqp *mqplib, mqpacket * mqp)
 	if (mqp->outbufferlen > 0) {
 		i = write (mqp->sock, mqp->outbuffer, mqp->outbufferlen);
 		if (i == mqp->outbufferlen) {
+			bzero(mqp->outbuffer, mqp->outbufferlen);
 			free (mqp->outbuffer);
 			mqp->outbufferlen = mqp->outoffset = 0;
 			mqp->pollopts &= ~POLLOUT;
@@ -303,12 +314,34 @@ write_fd (mqp *mqplib, mqpacket * mqp)
 }
 
 
-void print_decode(void *buf, size_t len) {
+void print_decode(mqpacket *mqp, int what) {
 	int i;
-	char *buf2 = buf;
-	printf("Decode: ");
-	for (i=0; i < len; i++) {
-		printf("%x ", buf2[i]);
+	char buf2[1024];
+	int len = 0;
+	
+	bzero(buf2, 1024);
+	switch (what) {
+		case 1:
+			printf("Decode: ");
+			strncpy(buf2, mqp->buffer, mqp->offset);
+			len = mqp->offset;
+			break;
+		case 2:
+			printf("Encode: ");
+			strncpy(buf2, mqp->outbuffer, mqp->outbufferlen);
+			len = mqp->outbufferlen;
+			break;
+
+	}
+	switch (mqp->wiretype) {
+		case ENG_TYPE_XDR:
+			for (i=0; i < len; i++) {
+				printf("%x ", buf2[i]);
+			}
+			break;
+		case ENG_TYPE_XML:
+			printf("%s", (char *)buf2);
+			break;
 	}
 	printf("\n");
 }

@@ -45,8 +45,9 @@ int
 pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long buflen)
 {
 	int rc, usedbuf;
+	char auth[1024], *auth2;
 
-	print_decode(buffer, buflen);
+	print_decode(mqp, 1);
 	
 	/* XXX XDR engine for now */
 	if (xds_setbuffer (mqp->xdsin, XDS_LOAN, buffer, buflen) != XDS_OK) {
