@@ -105,8 +105,6 @@ sqlite/config.guess -text
 sqlite/config.sub -text
 sqlite/configure -text
 sqlite/configure.ac -text
-sqlite/doc/lemon.html -text
-sqlite/doc/report1.txt -text
 sqlite/install-sh -text
 sqlite/ltmain.sh -text
 sqlite/main.mk -text

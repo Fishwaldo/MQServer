@@ -108,6 +108,7 @@ else
 fi
 
 NEO_SUBDIR_CONFIG(libevent, [--disable-shared --enable-static])
+NEO_SUBDIR_CONFIG(sqlite, [--enable-static --disable-shared --enable-tempdb-in-ram --enable-incore-db])
 
 AC_SUBST(LIBDB)
 AC_SUBST(MAKEDEPENDENCIES)

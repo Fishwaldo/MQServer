@@ -40,4 +40,5 @@
 
 #define INCPTR(n, cp)	((cp) += (n))
 #define DECPTR(n, cp)	((cp) -= (n))
+
 #endif

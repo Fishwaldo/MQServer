@@ -4618,6 +4618,114 @@ fi
 
 
 
+    # save our work to this point; this allows the sub-package to use it
+    cat >confcache <<\_ACEOF
+# This file is a shell script that caches the results of configure
+# tests run on this system so they can be shared between configure
+# scripts and configure runs, see configure's option --config-cache.
+# It is not useful on other systems.  If it contains results you don't
+# want to keep, you may remove or edit it.
+#
+# config.status only pays attention to the cache file if you give it
+# the --recheck option to rerun configure.
+#
+# `ac_cv_env_foo' variables (set or unset) will be overridden when
+# loading this file, other *unset* `ac_cv_foo' will be assigned the
+# following values.
+
+_ACEOF
+
+# The following way of writing the cache mishandles newlines in values,
+# but we know of no workaround that is simple, portable, and efficient.
+# So, don't put newlines in cache variables' values.
+# Ultrix sh set writes to stderr and can't be redirected directly,
+# and sets the high bit in the cache file unless we assign to the vars.
+{
+  (set) 2>&1 |
+    case `(ac_space=' '; set | grep ac_space) 2>&1` in
+    *ac_space=\ *)
+      # `set' does not quote correctly, so add quotes (double-quote
+      # substitution turns \\\\ into \\, and sed turns \\ into \).
+      sed -n \
+        "s/'/'\\\\''/g;
+    	  s/^\\([_$as_cr_alnum]*_cv_[_$as_cr_alnum]*\\)=\\(.*\\)/\\1='\\2'/p"
+      ;;
+    *)
+      # `set' quotes correctly as required by POSIX, so do not add quotes.
+      sed -n \
+        "s/^\\([_$as_cr_alnum]*_cv_[_$as_cr_alnum]*\\)=\\(.*\\)/\\1=\\2/p"
+      ;;
+    esac;
+} |
+  sed '
+     t clear
+     : clear
+     s/^\([^=]*\)=\(.*[{}].*\)$/test "${\1+set}" = set || &/
+     t end
+     /^ac_cv_env/!s/^\([^=]*\)=\(.*\)$/\1=${\1=\2}/
+     : end' >>confcache
+if diff $cache_file confcache >/dev/null 2>&1; then :; else
+  if test -w $cache_file; then
+    test "x$cache_file" != "x/dev/null" && echo "updating cache $cache_file"
+    cat confcache >$cache_file
+  else
+    echo "not updating unwritable cache $cache_file"
+  fi
+fi
+rm -f confcache
+
+    echo
+    echo "----------------------------------------------------------------"
+    echo "configuring package in sqlite now"
+    echo "----------------------------------------------------------------"
+    ac_popdir=`pwd`
+    ac_abs_srcdir=`(cd $srcdir/sqlite && pwd)`
+    apr_config_subdirs="sqlite"
+    test -d sqlite || $MKDIR sqlite
+    cd sqlite
+
+    #changequote(, )dnl
+    # A "../" for each directory in /$config_subdirs.
+    #ac_dots=`echo $apr_config_subdirs|sed -e 's%^\./%%' -e 's%[^/]$%&/%' -e 's%[^/]*/%../%g'`
+    #changequote([, ])dnl
+
+    # Make the cache file name correct relative to the subdirectory.
+    case "$cache_file" in
+    /*) ac_sub_cache_file=$cache_file ;;
+    *) # Relative path.
+      ac_sub_cache_file="$ac_dots$cache_file" ;;
+    esac
+
+    # The eval makes quoting arguments work.
+    if eval $ac_abs_srcdir/configure $ac_configure_args --cache-file=$ac_sub_cache_file --srcdir=$ac_abs_srcdir --enable-static --disable-shared --enable-tempdb-in-ram --enable-incore-db
+    then :
+      echo "sqlite configured properly"
+    else
+      echo "configure failed for sqlite"
+      exit 1
+    fi
+    cd $ac_popdir
+
+    # grab any updates from the sub-package
+    if test -r "$cache_file"; then
+  # Some versions of bash will fail to source /dev/null (special
+  # files actually), so we avoid doing that.
+  if test -f "$cache_file"; then
+    { echo "$as_me:$LINENO: loading cache $cache_file" >&5
+echo "$as_me: loading cache $cache_file" >&6;}
+    case $cache_file in
+      [\\/]* | ?:[\\/]* ) . $cache_file;;
+      *)                      . ./$cache_file;;
+    esac
+  fi
+else
+  { echo "$as_me:$LINENO: creating cache $cache_file" >&5
+echo "$as_me: creating cache $cache_file" >&6;}
+  >$cache_file
+fi
+
+
+
 
 
 
