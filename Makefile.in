@@ -29,7 +29,7 @@ modules:
 	(cd libevent; $(MAKE) libevent.a)
 	(cd sqlite; $(MAKE) libsqlite.la)
 	(cd Libs; $(MAKE) all)
-	(cd Server; $(MAKE) mqserver)
+	(cd Server; $(MAKE) all)
 
 # include dependency info 
 @MAKEDEPENDENCIES@

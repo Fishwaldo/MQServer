@@ -107,5 +107,5 @@ int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen);
 
 /* these are error defines */
 #define PCK_ERR_BUFFULL		1
-
+#define PCK_ERR_CRC		2
 #endif

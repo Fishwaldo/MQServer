@@ -24,7 +24,7 @@ YACC   = @YACC@
 
 
 NEOCFLAGS = $(CFLAGS)
-EXTRA_LDFLAGS = -L../libevent -levent -L../adns -ladns -L../Libs -lmqpacket
+EXTRA_LDFLAGS = -L../libevent -levent -L../adns -ladns -L../Libs -lmqpacket -lz
 
 PROGS = mqserver
 CONF = 
@@ -46,12 +46,15 @@ SUBDIRS =
 DISTLIBS = 
 DISTMOD = 
 
-all: mqserver 
+all: mqserver testclient
+
+testclient: 
+	$(CC) $(LDFLAGS) $(NEOCFLAGS) $(NEOINCLUDES) testclient.c $(EXTRA_LDFLAGS) -o testclient
+	
 
 mqserver: $(OBJS)
 	$(CC) $(LDFLAGS) $(OBJS) $(EXTRA_LDFLAGS) -o $@
 	cp -f mqserver ..
-	$(CC) $(LDFLAGS) $(NEOCFLAGS) $(NEOINCLUDES) testclient.c $(EXTRA_LDFLAGS) -o testclient
 
 # include dependency info 
 @MAKEDEPENDENCIES@
@@ -138,3 +141,4 @@ dist:
 # Catch any changes in compilation options at the top of this file
 $(OBJS): Makefile 
 mqserver: ../Libs/libmqpacket.a
+testclient: testclient.c

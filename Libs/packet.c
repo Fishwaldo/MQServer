@@ -30,14 +30,18 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+
+/* needed for crc32 function */
+#include <zlib.h>
                      
 #include "defines.h"
 #include "list.h"
 #include "packet.h"
 #include "getchar.h"
 
-void pck_send_err(mqprotocol *mqp, int err, const char *msg);
-
+static void pck_send_err(mqprotocol *mqp, int err, const char *msg);
+static int pck_check_packet_crc(mqpacket *, mqprotocol *);
+static void pck_destroy_mqpacket(mqpacket *mqpck, mqprotocol *mqp);
 
 void pck_init() {
 }
@@ -67,6 +71,22 @@ mqprotocol *pck_new_conn(void *cbarg, int type) {
 	}					
 	return NULL;
 }
+static int compare_mid(const void *key1, const void *key2) {
+	mqpacket *mqpck = (void *)key1;
+	unsigned long mid = (int)key2;
+	
+	if (mqpck->MID == mid) {
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
+static lnode_t *pck_find_mid_node(unsigned long MID, list_t *queue) {
+	return (list_find(queue, (void *)MID, compare_mid));
+}
+		
+
 
 #define PCK_MIN_PACK_SIZE 84
 int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen) {
@@ -128,8 +148,10 @@ int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen) {
 			if (mqpconfig.logger)
 				mqpconfig.logger("Got All Our Data. Processing MessageID %lu", mqpck->MID);
 #endif	
-			/* XXX ok, process this packet */
-			/* finished. ok, process next pack */
+			if (pck_check_packet_crc(mqpck, mqp) == NS_SUCCESS) {
+				/* XXX ok, process this packet */
+				/* finished. ok, process next pack */
+			}
 			mqp->wtforinpack = 1;
 		} else {
 			/* XXX TODO Drop Client?*/
@@ -146,18 +168,24 @@ int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen) {
 			return -1;
 		}
 		mqpck = lnode_get(node);
+
+		/* this is additional data, and it *should* be terminted by a null, so strlen should work */
 		gotdatasize = strlen(buffer);
 		if ((mqpck->LEN - strlen(mqpck->data)) == gotdatasize) {
 			/* this is the final pack, tack it on the end, and then pass it off for processing */
 			strncat(mqpck->data, buffer, mqpck->LEN);
-			/* XXX process it. */
+			if (pck_check_packet_crc(mqpck, mqp) == NS_SUCCESS) {
+				/* XXX process it. */
+			}
 			mqp->wtforinpack = 1;
+			return gotdatasize;
 		} else if ((mqpck->LEN - strlen(mqpck->data) - gotdatasize) < 0) {
 			/* we got more data than we expected. Eeeek */
 #ifdef DEBUG
 			if (mqpconfig.logger)
 				mqpconfig.logger("Got More data in buffer overflow than we expected. Throwing away MessageID %lu", mqpck->MID);
 #endif			
+	
 			/* XXX TODO Drop Client? */
 		} else {
 			/* we must be waiting for more data still. Tack it on, and update. */
@@ -177,5 +205,40 @@ void pck_send_err(mqprotocol *mqp, int err, const char *msg) {
 
 	if (mqpconfig.logger) 
 		mqpconfig.logger("pck_send_error: %s", msg);
+
+}
+
+int pck_check_packet_crc(mqpacket *mqpck, mqprotocol *mqp) {
+	uLong decodecrc;
+	
+	/* seed it */
+	decodecrc = crc32(0L, Z_NULL, 0);
+	
+	/* now do it */
+	decodecrc = crc32(decodecrc, mqpck->data, mqpck->LEN);
+	if (decodecrc != mqpck->crc) {
+		/* CRC Failed */
+		pck_send_err(mqp, PCK_ERR_CRC, "Crc Failed for MessageID");
+		pck_destroy_mqpacket(mqpck, mqp);
+		return NS_FAILURE;
+	}
+	return NS_SUCCESS;
+}
+
+
+void pck_destroy_mqpacket(mqpacket *mqpck, mqprotocol *mqp) {
+	lnode_t *node;
+	
+	node = pck_find_mid_node(mqpck->MID, mqp->inpack);
+	if (node) {
+#ifdef DEBUG
+			if (mqpconfig.logger)
+				mqpconfig.logger("Destroy Packet MessageID %lu", mqpck->MID);
+#endif			
+		list_delete(mqp->inpack, node);
+		lnode_destroy(node);
+		free(mqpck->data);
+		free(mqpck);
+	} 
 
 }

@@ -43,11 +43,9 @@
 
 int servsock;
 
-static int listen_on_port(int port);
+int ConnectTo (char *host, int port);
 
-static void setup_dns_socks();
 
-static int buffer_add(mqclient *mqc, void *data, size_t datlen);
 
 int main() {
 	u_char outbuf[BUFSIZE];
@@ -57,12 +55,12 @@ int main() {
 	u_short ver = 1;
 	u_long len;
 	u_long flag = 0;
-	u_long crc = 1212223112;
+	u_long crc = 3099544737l;
 	char mydata[] = "This is my data string\0";
 	int fd;
 	
-	len = strlen(mydata)+4;
-	fd = ConnectTo("10.1.1.12", 1234);
+	len = strlen(mydata);
+	fd = ConnectTo("127.0.0.1", 1234);
 	printf("%d\n", fd);
 	if (fd < 0) {
 		printf("failed connect\n");
@@ -96,7 +94,7 @@ int main() {
 	fsync(fd);
 
 			
-
+	return 0;
 }
 
 /** @brief Connect to a server
