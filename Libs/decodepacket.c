@@ -42,34 +42,6 @@
 
 static void pck_send_err(mqprotocol *mqp, int err, const char *msg);
 
-void pck_init() {
-}
-
-void pck_set_logger(logfunc *logger) {
-	mqpconfig.logger = logger;
-}
-
-mqprotocol *pck_new_conn(void *cbarg, int type) {
-	mqprotocol *mqp;
-	
-	if (type > 0 && type < 4) {
-		mqp = malloc(sizeof(mqprotocol));
-		bzero(mqp, sizeof(mqprotocol));
-		mqp->inpack = list_create(INPACK_MAX);
-		mqp->outpack = list_create(OUTPACK_MAX);
-		mqp->cbarg = cbarg;
-		mqp->servorclnt = type;
-		/* we are waiting for a new packet */
-		mqp->wtforinpack = 1;
-		if (mqpconfig.logger)
-			mqpconfig.logger("New Protocol Struct created");
-		return mqp;
-	} else {
-		if (mqpconfig.logger) 
-			mqpconfig.logger("Invalid Connection Type %d", type);
-	}					
-	return NULL;
-}
 
 /* this is called from the socket recv code. */
 int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen) {

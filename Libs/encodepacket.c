@@ -91,7 +91,7 @@ unsigned long pck_commit_data(mqprotocol *mqp, mqpacket *mqpck) {
 		pck_destroy_mqpacket(mqpck, NULL);
 		return -1;	
 	}		
-	if (xds_setbuffer(mqpck->xds, XDS_GIFT, (void **)&mqpck->data, mqpck->dataoffset) != XDS_OK) {
+	if (xds_getbuffer(mqpck->xds, XDS_GIFT, (void **)&mqpck->data, mqpck->dataoffset) != XDS_OK) {
 		if (mqpconfig.logger) 
 			mqpconfig.logger("OutBuffer is Full.");
 		pck_destroy_mqpacket(mqpck, NULL);

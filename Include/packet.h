@@ -44,6 +44,8 @@
 #define PCK_MIN_PACK_SIZE 84
 
 
+list_t *connections;
+
 /* client protocol struct */
 typedef struct mqprotocol {
 	list_t *inpack;
@@ -52,6 +54,8 @@ typedef struct mqprotocol {
 	unsigned long nxtoutmid;
 	int wtforinpack;
 	int servorclnt;
+	int sock;
+	int pollfdopts
 	void *cbarg;
 } mqprotocol;	
 

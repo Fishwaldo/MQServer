@@ -37,6 +37,16 @@
 #include "getchar.h"
 #include "xds.h"
 
+void pck_init() {
+	connections = list_create(-1);
+}
+
+void pck_set_logger(logfunc *logger) {
+	mqpconfig.logger = logger;
+}
+
+
+
 static int compare_mid(const void *key1, const void *key2) {
 	mqpacket *mqpck = (void *)key1;
 	unsigned long mid = (int)key2;
@@ -47,6 +57,22 @@ static int compare_mid(const void *key1, const void *key2) {
 		return -1;
 	}
 }
+
+static int compare_fd(const void *key1, const void *key2) {
+	mqprotocol *mqp = (void *)key1;
+	unsigned long fd = (int)key2;
+	
+	if (mqp->fd == fd) {
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
+lnode_t *pck_find_fd_node(unsigned long fd, list_t *queue) {
+	return (list_find(queue, (void *)fd, compare_fd));
+}
+
 
 lnode_t *pck_find_mid_node(unsigned long MID, list_t *queue) {
 	return (list_find(queue, (void *)MID, compare_mid));
@@ -107,3 +133,73 @@ void pck_destroy_mqpacket(mqpacket *mqpck, mqprotocol *mqp) {
 	free(mqpck);
 	
 }
+
+
+mqprotocol *pck_new_conn(void *cbarg, int type) {
+	mqprotocol *mqp;
+	lnode_t *node;
+	
+	if (type > 0 && type < 4) {
+		mqp = malloc(sizeof(mqprotocol));
+		bzero(mqp, sizeof(mqprotocol));
+		mqp->inpack = list_create(INPACK_MAX);
+		mqp->outpack = list_create(OUTPACK_MAX);
+		mqp->cbarg = cbarg;
+		mqp->fd = 0;
+		mqp->pollfdopts = 0;
+		mqp->servorclnt = type;
+		/* we are waiting for a new packet */
+		mqp->wtforinpack = 1;
+		if (mqpconfig.logger)
+			mqpconfig.logger("New Protocol Struct created");
+		node = lnode_create(mqp);
+		list_insert(connections, node);
+		return mqp;
+	} else {
+		if (mqpconfig.logger) 
+			mqpconfig.logger("Invalid Connection Type %d", type);
+	}					
+	return NULL;
+}
+
+int read_fd(int fd, void *arg) {
+	void *buf[BUFSIZE];
+	mqprotocol *mqp;
+	int i;
+	lnode_t *node;
+
+	
+	node = pck_find_fd_node(fd, connections);
+	if (node) {
+		mqp = lnode_get(node);
+		bzero(buf, BUFSIZE);
+		i = read(fd, buf, BUFSIZE);
+		if (i < 1) {
+			/* error */
+			close(fd);
+			/* XXX close and clean up */
+			return NS_FAILURE;
+		} else {
+			buffer_add(mqc, buf, i);
+		}
+
+		i = pck_parse_packet(mqc->pck, mqc->buffer, mqc->offset);
+		if (mqpconfig.logger) 
+			mqpconfig.logger("processed %d bytes %d left", i, mqc->offset);
+		if (i > 0) {
+		 	buffer_del(mqc, i);
+		} else if (i == -1) {
+			/* XXX drop client */
+		}	
+	} else {
+		if (mqpconfig.logger)
+			mqpconfig.logger("Can't find client for %d", fd);
+		/* XXX drop client */
+	}
+}
+
+int close_fd(int fd, mqprotocol *mqp) {
+	lnode_t *node;
+	if (mqp) {
+		node = pck_find_fd_node(fd, connections);
+		list_d
