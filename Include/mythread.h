@@ -4,8 +4,6 @@
 **
 **  Portions Copyright (c) 2000-2001 ^Enigma^
 **
-**  Portions Copyright (c) 1999 Johnathan George net@lite.net
-**
 **  This program is free software; you can redistribute it and/or modify
 **  it under the terms of the GNU General Public License as published by
 **  the Free Software Foundation; either version 2 of the License, or
@@ -22,25 +20,44 @@
 **  USA
 **
 ** NeoStats CVS Identification
-** $Id: client.c 4 2004-04-28 12:02:07Z Fish $
+** $Id: client.h 23 2004-07-27 10:57:56Z Fish $
 */
 
-#include <fcntl.h>
-#include <sys/poll.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-
-#include "defines.h"
-#include "list.h"
-#include "packet.h"
-#include "getchar.h"
+#ifndef MYTHREAD_H
+#define MYTHREAD_H
 
 
-void pck_send_srvcap(mqprotocol *mqp) {
-	mqpacket *mqpck;
-	int i;
-	mqpck = pck_new_packet(PCK_SRVCAP, 0);
-	/* XXX */
-	i = pck_commit_data(mqp, mqpck);
-}
+
+list_t *threads;
+
+
+
+typedef struct locks {
+	pthread_mutex_t lock;        
+        char who[BUFSIZE];         
+        long thread;
+	char name[BUFSIZE];
+} mylocks;
+
+typedef struct mythreads {
+	long tid;
+	char name[BUFSIZE];
+} mythreads;	
+
+mylocks mythreadengine;
+
+
+#define MYLOCK(x) mylock_(x, __FILE__, __FUNCTION__)
+#define MYUNLOCK(x) myunlock_(x, __FILE__, __FUNCTION__)
+#define MYLOCK_INIT(x) pthread_mutex_init(&x.lock, NULL)
+
+void mylock_(mylocks *, char *, char *);
+void myunlock_(mylocks *, char *, char *);
+
+char *get_thread_name(long tid);
+int destroy_thread();
+int create_thread(char *name, void *(*start)(void *), void *arg);
+int thread_created(char *name);
+int init_threadengine();
+
+#endif
