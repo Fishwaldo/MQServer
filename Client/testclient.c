@@ -41,7 +41,7 @@ int main() {
 	init_socket();
 	debug_socket(1);
 
-	pck_make_connection("snoopy", "fish", "haha", 0, NULL);
+	pck_make_connection("nurgle.my-ho.st", "fish", "haha", 0, NULL);
 	while (rc == 1) {
 		rc = pck_process();
 		sleep(1);
