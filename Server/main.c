@@ -33,6 +33,7 @@
 #include "log.h"
 #include "sock.h"
 #include "dotconf.h"
+#include "dns.h"
 
 
 /*! Date when we were compiled */
@@ -42,12 +43,10 @@ const char version_time[] = __TIME__;
 
 char segv_inmodule[SEGV_INMODULE_BUFSIZE];
 char segv_location[SEGV_LOCATION_BUFSIZE];
-adns_state ads;
 
 void start (void);
 static void setup_signals (void);
 static int get_options (int argc, char **argv);
-static int init_dns ();
 
 /*! have we forked */
 int forked = 0;
@@ -468,29 +467,3 @@ void fatal_error(char* file, int line, char* func, char* error_text)
 	do_exit (NS_EXIT_ERROR, "Fatal Error - check log file");
 }
 
-/** @brief sets up DNS subsystem
- *
- * configures ADNS for use with NeoStats.
- *
- * @return returns 1 on success, 0 on failure
-*/
-
-int
-init_dns ()
-{
-	int adnsstart;
-
-	SET_SEGV_LOCATION();
-#ifndef DEBUG
-	adnsstart = adns_init (&ads, adns_if_noerrprint | adns_if_noautosys, 0);
-#else
-	adnsstart = adns_init (&ads, adns_if_debug | adns_if_noautosys, 0);
-#endif
-	if (adnsstart) {
-		printf ("ADNS init failed: %s\n", strerror (adnsstart));
-		nlog (LOG_CRITICAL, LOG_CORE, "ADNS init failed: %s", strerror (adnsstart));
-		return NS_FAILURE;
-	}
-	return NS_SUCCESS;
-
-}

@@ -37,6 +37,7 @@
 #include "log.h"
 #include "client.h"
 #include "list.h"
+#include "dns.h"
 
 list_t *clientlist;
 
@@ -99,3 +100,34 @@ void del_client(mqclient *mqc) {
 	lnode_destroy(mqc->node);
 	free(mqc);
 }
+
+void got_reverse_lookup_answer(void *data, adns_answer * a) {
+	mqclient *mqc = data;
+	int len, ri;
+	char *show;
+	if (a) {
+		adns_rr_info(a->type, 0, 0, &len, 0, 0);
+		if (a->nrrs > 0) {
+			ri = adns_rr_info(a->type, 0, 0, 0, a->rrs.bytes, &show);
+			if (!ri) {
+				nlog(LOG_DEBUG2, LOG_CORE, "DNS for Host %s resolves to %s", mqc->host, show);
+				strncpy(mqc->host, show, MAXHOST);
+			} else {
+				nlog(LOG_WARNING, LOG_CORE, "Dns Error: %s", adns_strerror(ri));
+			}
+			free(show);
+		} else {
+			nlog(LOG_DEBUG2, LOG_CORE, "DNS for IP %s Does not resolve", mqc->host);
+		}
+	}		
+	MQC_CLEAR_STAT_DNSLOOKUP(mqc);
+	
+	/* XXX check bans? */
+}
+
+void do_reverse_lookup(mqclient *mqc) {
+	/* at this stage, what ever is in host, will be a plain ip address */
+	dns_lookup(mqc->host, adns_r_ptr, got_reverse_lookup_answer, (void *)mqc);
+	MQC_SET_STAT_DNSLOOKUP(mqc);	
+}
+

@@ -95,6 +95,11 @@
 #define MAXREALNAME		50
 #endif
 
+#ifndef DNS_QUEUE_SIZE
+#define DNS_QUEUE_SIZE		20
+#endif
+
+
 /* MAXPATH 
  * used to determine buffer sizes for file system operations
  */

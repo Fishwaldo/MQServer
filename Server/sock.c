@@ -37,6 +37,7 @@
 #include "log.h"
 #include "dotconf.h"
 #include "client.h"
+#include "dns.h"
 
 static struct sockaddr_in lsa;
 static int dobind;
@@ -45,7 +46,7 @@ int servsock;
 
 static int listen_on_port(int port);
 
-
+static void setup_dns_socks();
 
 
 /** @brief Connect to a server
@@ -149,6 +150,8 @@ void listen_accept(int fd, short eventtype, void *arg) {
 	mqc->ip = client_address;
 	strncpy(mqc->host, inet_ntoa(client_address.sin_addr), MAXHOST);
 	nlog(LOG_DEBUG1, LOG_CORE, "New Connection from %s on fd %d", mqc->host, mqc->fd);
+	/* start DNS lookup */
+	do_reverse_lookup(mqc);
 	event_set(&mqc->ev, l, EV_READ|EV_PERSIST, client_activity, mqc);
 	event_add(&mqc->ev, NULL);	
 }
@@ -179,6 +182,9 @@ start ()
 
 	while (1) {
 		SET_SEGV_LOCATION();
+
+		setup_dns_socks();
+
 		event_loop(EVLOOP_ONCE);
 		if (me.die) {
 			do_exit(NS_EXIT_NORMAL, "Normal Exit");
@@ -284,3 +290,10 @@ listen_on_port(int port)
   }
   return (srvfd);}
 
+
+
+void setup_dns_socks() {
+	/* acutally it would be better to use the select/poll interface, but this makes it easy */
+	adns_processany(ads);
+	do_dns();
+}
