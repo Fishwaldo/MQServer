@@ -37,6 +37,11 @@
 #include "getchar.h"
 #include "xds.h"
 
+
+int close_fd(int fd, mqprotocol *mqp);
+int buffer_add(mqprotocol *mqp, void *data, size_t datlen);
+void buffer_del(mqprotocol *mqp, size_t drainlen);
+
 void pck_init() {
 	connections = list_create(-1);
 }
@@ -62,7 +67,7 @@ static int compare_fd(const void *key1, const void *key2) {
 	mqprotocol *mqp = (void *)key1;
 	unsigned long fd = (int)key2;
 	
-	if (mqp->fd == fd) {
+	if (mqp->sock == fd) {
 		return 0;
 	} else {
 		return -1;
@@ -83,7 +88,9 @@ void pck_create_mqpacket(mqpacket *mqpck, int type, xds_mode_t direction) {
 	mqpck = malloc(sizeof(mqpacket));
 	if (xds_init(&mqpck->xds, direction) != XDS_OK) {
 		if (mqpconfig.logger)
-			mqpconfig.logger("xds init failed: %s", strerrno(errno));
+			mqpconfig.logger("xds init failed: %s", strerror(errno));
+			free(mqpck);
+			mqpck = NULL;
 	}
 	i = 0;
 	switch (type) {
@@ -92,6 +99,9 @@ void pck_create_mqpacket(mqpacket *mqpck, int type, xds_mode_t direction) {
 				if (xds_register(mqpck->xds, dec_xdr_engines[i].myname, dec_xdr_engines[i].ptr, NULL) != XDS_OK) {
 					if (mqpconfig.logger) 
 						mqpconfig.logger("xds_register failed for %s", dec_xdr_engines[i].myname);
+					xds_destroy(mqpck->xds);
+					free(mqpck);
+					mqpck = NULL;
 				}
 				i++;
 			}
@@ -101,6 +111,9 @@ void pck_create_mqpacket(mqpacket *mqpck, int type, xds_mode_t direction) {
 				if (xds_register(mqpck->xds, dec_xml_engines[i].myname, dec_xml_engines[i].ptr, NULL) != XDS_OK) {
 					if (mqpconfig.logger) 
 						mqpconfig.logger("xds_register failed for %s", dec_xml_engines[i].myname);
+					xds_destroy(mqpck->xds);
+					free(mqpck);
+					mqpck = NULL;
 				}
 				i++;
 			}
@@ -110,6 +123,7 @@ void pck_create_mqpacket(mqpacket *mqpck, int type, xds_mode_t direction) {
 				mqpconfig.logger("invalid pck_create_mqpacket type %d", type);
 			xds_destroy(mqpck->xds);
 			free(mqpck);
+			mqpck = NULL;
 			return;
 	}
 }
@@ -142,10 +156,10 @@ mqprotocol *pck_new_conn(void *cbarg, int type) {
 	if (type > 0 && type < 4) {
 		mqp = malloc(sizeof(mqprotocol));
 		bzero(mqp, sizeof(mqprotocol));
-		mqp->inpack = list_create(INPACK_MAX);
-		mqp->outpack = list_create(OUTPACK_MAX);
+		mqp->inpack = list_create(-1);
+		mqp->outpack = list_create(-1);
 		mqp->cbarg = cbarg;
-		mqp->fd = 0;
+		mqp->sock = 0;
 		mqp->pollfdopts = 0;
 		mqp->servorclnt = type;
 		/* we are waiting for a new packet */
@@ -153,13 +167,56 @@ mqprotocol *pck_new_conn(void *cbarg, int type) {
 		if (mqpconfig.logger)
 			mqpconfig.logger("New Protocol Struct created");
 		node = lnode_create(mqp);
-		list_insert(connections, node);
+		list_append(connections, node);
 		return mqp;
 	} else {
 		if (mqpconfig.logger) 
 			mqpconfig.logger("Invalid Connection Type %d", type);
 	}					
 	return NULL;
+}
+
+int pck_free_conn(mqprotocol *mqp) {
+	lnode_t *node, *node2;
+	mqprotocol *mqp2;
+	mqpacket *mqpck;
+	
+	node = list_first(connections);
+	while (node != NULL) {
+		mqp2 = lnode_get(node);
+		if (mqp2 == mqp) {
+			/* its a match */
+			list_delete(connections, node);
+			lnode_destroy(node);
+			node2 = list_first(mqp->inpack);
+			while (node2 != NULL) {
+				mqpck = lnode_get(node2);
+				free(mqpck->data);
+			        xds_destroy(mqpck->xds);
+		                free(mqpck);
+				node2 = list_next(mqp->inpack, node2);
+			}
+			node2 = list_first(mqp->outpack); 
+			while (node2 != NULL) {
+				mqpck = lnode_get(node2);
+				free(mqpck->data);
+			        xds_destroy(mqpck->xds);
+		                free(mqpck);
+				node2 = list_next(mqp->outpack, node2);
+			}
+			list_destroy_nodes(mqp->inpack);
+			list_destroy_nodes(mqp->outpack);
+			list_destroy(mqp->inpack);
+			list_destroy(mqp->outpack);
+			free(mqp);
+			if (mqpconfig.logger) 
+				mqpconfig.logger("Deleted Protocol Struct");
+			return NS_SUCCESS;
+		}
+	}
+	if (mqpconfig.logger) 
+		mqpconfig.logger("Couldn't Find Protocol Struct for deletion");
+	return NS_FAILURE;
 }
 
 int read_fd(int fd, void *arg) {
@@ -176,30 +233,130 @@ int read_fd(int fd, void *arg) {
 		i = read(fd, buf, BUFSIZE);
 		if (i < 1) {
 			/* error */
-			close(fd);
+			close_fd(fd, mqp);
 			/* XXX close and clean up */
 			return NS_FAILURE;
 		} else {
-			buffer_add(mqc, buf, i);
+			buffer_add(mqp, buf, i);
 		}
 
-		i = pck_parse_packet(mqc->pck, mqc->buffer, mqc->offset);
+		i = pck_parse_packet(mqp, mqp->buffer, mqp->offset);
 		if (mqpconfig.logger) 
-			mqpconfig.logger("processed %d bytes %d left", i, mqc->offset);
+			mqpconfig.logger("processed %d bytes %d left", i, mqp->offset);
 		if (i > 0) {
-		 	buffer_del(mqc, i);
+		 	buffer_del(mqp, i);
 		} else if (i == -1) {
-			/* XXX drop client */
+			close_fd(fd, mqp);
+			return NS_FAILURE;
 		}	
 	} else {
 		if (mqpconfig.logger)
 			mqpconfig.logger("Can't find client for %d", fd);
-		/* XXX drop client */
+		close_fd(fd, NULL);
+		return NS_FAILURE;
 	}
+	return NS_SUCCESS;
 }
 
 int close_fd(int fd, mqprotocol *mqp) {
-	lnode_t *node;
 	if (mqp) {
-		node = pck_find_fd_node(fd, connections);
-		list_d
+		pck_free_conn(mqp);
+	} else {
+		if (mqpconfig.logger)
+			mqpconfig.logger("Closing a FD without a connection?");
+	}
+	close(fd);
+	return NS_SUCCESS;
+}
+
+
+int
+buffer_add(mqprotocol *mqp, void *data, size_t datlen)
+{
+	size_t need = mqp->offset + datlen;
+//	size_t oldoff = mqp->offset;
+
+	if (mqp->bufferlen < need) {
+		void *newbuf;
+		int length = mqp->bufferlen;
+
+		if (length < 256)
+			length = 256;
+		while (length < need)
+			length <<= 1;
+
+		if ((newbuf = realloc(mqp->buffer, length)) == NULL)
+			return (-1);
+		mqp->buffer = newbuf;
+		mqp->bufferlen = length;
+	}
+
+	memcpy(mqp->buffer + mqp->offset, data, datlen);
+	mqp->offset += datlen;
+
+#if 0
+	if (datlen && mqp->cb != NULL)
+		(*mqp->cb)(mqp, oldoff, mqp->off, mqp->cbarg);
+#endif
+	return (0);
+}
+
+void buffer_del(mqprotocol *mqp, size_t drainlen) {
+	
+	memmove(mqp->buffer, mqp->buffer + drainlen, mqp->offset-drainlen);
+	mqp->offset = mqp->offset-drainlen;
+}
+
+int write_fd(mqprotocol *mqp) {
+	int i;
+	lnode_t *node;
+	mqpacket *mqpacket;
+	if (mqp->outbufferlen > 0) {
+		i = write(mqp->sock, mqp->outbuffer, mqp->outbufferlen);
+		if (i == mqp->outbufferlen) {
+			free(mqp->outbuffer);
+			mqp->outbufferlen = mqp->outoffset = 0;
+		} else if (i > 0) {
+			memmove(mqp->outbuffer, mqp->outbuffer + i, mqp->outoffset - i);
+			mqp->outoffset = mqp->outoffset -i;
+		} else {
+			/* something went wrong sending the data */
+			if (mqpconfig.logger)
+				mqpconfig.logger("Error Sending on fd %d", mqp->sock);
+			close_fd(mqp->sock, mqp);
+			return NS_FAILURE;
+		}			
+	}
+	if (list_count(mqp->outpack) > 0) {
+		node = list_first(mqp->outpack);
+		mqpacket = lnode_get(node);
+		mqp->outbuffer = malloc(2 +(257*mqpacket->dataoffset)/254);
+		mqp->outbufferlen = sqlite_encode_binary(mqpacket->data, mqpacket->dataoffset, mqp->outbuffer);
+		mqp->outoffset = mqp->outbufferlen;
+		if (mqp->outbufferlen > 0) {
+			list_delete(mqp->outpack, node);
+			lnode_destroy(node);
+			i = write(mqp->sock, mqp->outbuffer, mqp->outbufferlen);
+			if (i == mqp->outbufferlen) {
+				free(mqp->outbuffer);
+				mqp->bufferlen = mqp->offset = 0;
+			} else if (i > 0) {
+				memmove(mqp->outbuffer, mqp->outbuffer +i, mqp->outoffset - i);
+				mqp->outoffset = mqp->outoffset -i;
+			} else {
+				/* something went wrong sending the data */
+				if (mqpconfig.logger)
+					mqpconfig.logger("Error Sending on fd %d", mqp->sock);
+				close_fd(mqp->sock, mqp);
+				return NS_FAILURE;
+			}
+		} else {
+			/* somethign went wrong encoding the data */
+			if (mqpconfig.logger) 
+				mqpconfig.logger("Error Encoding the data on fd %d", mqp->sock);
+			close_fd(mqp->sock, mqp);
+			return NS_FAILURE;
+		}
+	}
+	return NS_SUCCESS;
+}		

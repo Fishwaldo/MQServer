@@ -315,39 +315,3 @@ void setup_dns_socks() {
 	do_dns();
 }
 
-int
-buffer_add(mqclient *mqc, void *data, size_t datlen)
-{
-	size_t need = mqc->offset + datlen;
-//	size_t oldoff = mqc->offset;
-
-	if (mqc->bufferlen < need) {
-		void *newbuf;
-		int length = mqc->bufferlen;
-
-		if (length < 256)
-			length = 256;
-		while (length < need)
-			length <<= 1;
-
-		if ((newbuf = realloc(mqc->buffer, length)) == NULL)
-			return (-1);
-		mqc->buffer = newbuf;
-		mqc->bufferlen = length;
-	}
-
-	memcpy(mqc->buffer + mqc->offset, data, datlen);
-	mqc->offset += datlen;
-
-#if 0
-	if (datlen && mqc->cb != NULL)
-		(*mqc->cb)(mqc, oldoff, mqc->off, mqc->cbarg);
-#endif
-	return (0);
-}
-
-void buffer_del(mqclient *mqc, size_t drainlen) {
-	
-	memmove(mqc->buffer, mqc->buffer + drainlen, mqc->offset-drainlen);
-	mqc->offset = mqc->offset-drainlen;
-}

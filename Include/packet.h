@@ -55,8 +55,14 @@ typedef struct mqprotocol {
 	int wtforinpack;
 	int servorclnt;
 	int sock;
-	int pollfdopts
+	int pollfdopts;
 	void *cbarg;
+	void *buffer;
+	size_t bufferlen;
+	size_t offset;
+	void *outbuffer;
+	size_t outbufferlen;
+	size_t outoffset;
 } mqprotocol;	
 
 typedef void (logfunc)(char *fmt, ...)  __attribute__((format(printf,1,2))); /* 3=format 4=params */
