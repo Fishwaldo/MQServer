@@ -57,7 +57,7 @@ pck_new_packet (int msgtype, unsigned long flags)
 	mqpck->dataoffset = 0;
 	mqpck->data = NULL;
 	if (mqpconfig.logger)
-		mqpconfig.logger ("Created a New Packet with MID %d", mqpck->MID);
+		mqpconfig.logger ("Created a New Packet with MID %lud", mqpck->MID);
 	return mqpck;
 }
 
@@ -78,8 +78,9 @@ unsigned long
 pck_commit_data (mqprotocol * mqp, mqpacket * mqpck)
 {
 	lnode_t *node;
-	uLong crc;
 	int rc;
+	unsigned char *data;
+	int length;
 
 	if (list_isfull (mqp->outpack)) {
 		if (mqpconfig.logger)
@@ -96,7 +97,6 @@ pck_commit_data (mqprotocol * mqp, mqpacket * mqpck)
 	mqpck->VERSION = 1;
 	/* increment the mid */
 	mqpck->MID = mqp->nxtoutmid++;
-	
 	rc = xds_encode (mqpck->xds, "mqpheader", &mqpck);
 
 	if (rc != XDS_OK) {
@@ -105,14 +105,13 @@ pck_commit_data (mqprotocol * mqp, mqpacket * mqpck)
 		pck_destroy_mqpacket (mqpck, NULL);
 		return -1;
 	}
-	rc = xds_getbuffer (mqpck->xds, XDS_GIFT, (void **) &mqpck->data, &mqpck->dataoffset) ;
+	rc = xds_getbuffer (mqpck->xds, XDS_GIFT, (void **) &mqpck->data, (size_t *)&mqpck->dataoffset) ;
 	if (rc != XDS_OK) {
 		if (mqpconfig.logger)
 			mqpconfig.logger ("OutBuffer is Full. %d", rc);
 		pck_destroy_mqpacket (mqpck, NULL);
 		return -1;
 	}
-
 	node = lnode_create (mqpck);
 	list_append (mqp->outpack, node);
 	write_fd(mqp->sock, mqp);

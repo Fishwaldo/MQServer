@@ -168,7 +168,9 @@ mqpacket *pck_create_mqpacket(int type, xds_mode_t direction);
 lnode_t *pck_find_mid_node(unsigned long MID, list_t *queue);
 mqpacket *pck_new_packet (int msgtype, unsigned long flags);
 unsigned long pck_commit_data (mqprotocol * mqp, mqpacket * mqpck);
-
+void pck_set_server();
+int pck_process();
+int pck_make_connection(struct sockaddr_in sa, void *cbarg);
 
 
 /* these are error defines */

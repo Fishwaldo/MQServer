@@ -45,26 +45,37 @@ int
 pck_parse_packet (mqprotocol * mqp, u_char * buffer, unsigned long buflen)
 {
 	mqpacket *mqpck;
-	int rc;
+	u_char *buf2, *mybuf;
+	int rc, len;
 
 	if (mqp->wtforinpack == 1) {
+		if (!strchr(buffer, '\0')) {
+			if (mqpconfig.logger) 
+				mqpconfig.logger ("Buffer isn't terminated\n");
+		}
+		mybuf = malloc(buflen);
+		len = sqlite_decode_binary(buffer, mybuf);
+		printf("decode %d\n", len);
 		/* XXX XDR engine for now */
 		mqpck = pck_create_mqpacket (ENG_TYPE_XDR, XDS_DECODE);
 		if (mqpck == NULL) {
 			if (mqpconfig.logger)
 				mqpconfig.logger("create packet failed");
 			/* XXX drop client ? */
+			free(mybuf);
 			return NS_FAILURE;
 		}
-		if (xds_setbuffer (mqpck->xds, XDS_LOAN, buffer, buflen) != XDS_OK) {
+		if (xds_setbuffer (mqpck->xds, XDS_LOAN, mybuf, len) != XDS_OK) {
 			if (mqpconfig.logger)
 				mqpconfig.logger ("XDS setbuffer Failed");
 			pck_destroy_mqpacket (mqpck, NULL);
 			/* XXX drop client ? */
+			free(mybuf);
 			return NS_FAILURE;
 		}
 		/* lets use a switch here to handle it intelegently */
 		rc = xds_decode (mqpck->xds, "mqpheader", &mqpck);
+		free(mybuf);
 		switch (rc) {
 		case XDS_OK:
 			printf("breaking here\n");
@@ -100,15 +111,14 @@ pck_parse_packet (mqprotocol * mqp, u_char * buffer, unsigned long buflen)
 		default:
 			if (mqpconfig.logger)
 				mqpconfig.logger ("Invalid MsgType Recieved");
-			pck_destroy_mqpacket (mqpck, NULL);
+//			pck_destroy_mqpacket (mqpck, NULL);
 			/* XXX drop client */
 			return NS_FAILURE;
 		}
 		/* finished processing the message. grab what buffer we consumed and return */
-
-		rc = xds_get_usedbuffer (mqpck->xds);
-		pck_destroy_mqpacket (mqpck, NULL);
-		return rc;
+//		rc = xds_get_usedbuffer (mqpck->xds);
+//		pck_destroy_mqpacket (mqpck, NULL);
+		return len;
 	}
 
 	/* nothing done on the buffer, so return 0 */

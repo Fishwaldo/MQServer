@@ -36,14 +36,35 @@
 void pck_logger(char *fmt,...);
 
 int main() {
+	int connect;
+	struct sockaddr_in sa;
+	struct hostent *hp;
 
 	pck_set_logger(pck_logger);	
 	pck_set_server();
 	pck_init();
+	connect = 0;
+	
+	if ((hp = gethostbyname("localhost")) == NULL) {
+		printf("gethostbyname failed\n");
+		exit(-1);
+	}
+	sa.sin_family = AF_INET;
+	sa.sin_port = htons(8888);
+	bcopy(hp->h_addr, (char *) &sa.sin_addr, hp->h_length);
+	
 	
 	while (1) {
 		pck_process();
 		sleep(2);
+		if (connect == 0) {
+			if (pck_make_connection(sa, NULL) == NS_FAILURE) {
+				printf("connect failed\n");
+				exit(-1);
+			} else {
+				connect = 1;
+			}
+		}
 	}
 
 }

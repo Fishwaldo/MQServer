@@ -246,7 +246,7 @@ pck_destroy_mqpacket (mqpacket * mqpck, mqprotocol * mqp)
 			lnode_destroy (node);
 		}
 	}
-//	if (mqpck->data) free (mqpck->data);
+	if (mqpck->data) free (mqpck->data);
 	xds_destroy (mqpck->xds);
 	free (mqpck);
 
@@ -268,10 +268,11 @@ pck_new_conn (void *cbarg, int type)
 		mqp->sock = 0;
 		mqp->pollopts = 0;
 		mqp->servorclnt = type;
+		mqp->nxtoutmid = mqp->nxtinmid = 1;
 		/* we are waiting for a new packet */
 		mqp->wtforinpack = 1;
 		if (mqpconfig.logger)
-			mqpconfig.logger ("New Protocol Struct created");
+			mqpconfig.logger ("New Protocol Struct created %d", type);
 		node = lnode_create (mqp);
 		list_append (connections, node);
 		return mqp;
@@ -332,18 +333,21 @@ read_fd (int fd, void *arg)
 {
 	void *buf[BUFSIZE];
 	mqprotocol *mqp;
-	int i;
+	size_t i;
 	lnode_t *node;
-
+printf("read %d\n", fd);
 
 	node = pck_find_fd_node (fd, connections);
 	if (node) {
 		mqp = lnode_get (node);
 		bzero (buf, BUFSIZE);
 		i = read (fd, buf, BUFSIZE);
+printf("read %d bytes from %d\n", i,fd);
 		if (i < 1) {
 			/* error */
 			close_fd (fd, mqp);
+			if (mqpconfig.logger)
+				mqpconfig.logger("Failed to Read fd %d: %s", fd, strerror(errno));
 			/* XXX close and clean up */
 			return NS_FAILURE;
 		} else {
@@ -432,9 +436,11 @@ buffer_del (mqprotocol * mqp, size_t drainlen)
 int
 write_fd (int fd, mqprotocol * mqp)
 {
-	int i;
+	int i, len;
 	lnode_t *node;
 	mqpacket *mqpacket;
+	
+	
 	if (!mqp) {
 		node = pck_find_fd_node (fd, connections);
 		if (node) {
@@ -446,9 +452,11 @@ write_fd (int fd, mqprotocol * mqp)
 		}
 	}
 	/* ok, first we figure out what stage we are at */
+printf("write %d buf: %d count: %d\n", fd, mqp->outbufferlen, list_count(mqp->outpack));
 
 	if (mqp->outbufferlen > 0) {
 		i = write (mqp->sock, mqp->outbuffer, mqp->outbufferlen);
+		printf("write %d - %d\n", mqp->sock, i);
 		if (i == mqp->outbufferlen) {
 			free (mqp->outbuffer);
 			mqp->outbufferlen = mqp->outoffset = 0;
@@ -468,13 +476,16 @@ write_fd (int fd, mqprotocol * mqp)
 	if (list_count (mqp->outpack) > 0) {
 		node = list_first (mqp->outpack);
 		mqpacket = lnode_get (node);
-		mqp->outbuffer = malloc (2 + (257 * mqpacket->dataoffset) / 254);
+		len = 2 + (257 * mqpacket->dataoffset) / 254;
+		mqp->outbuffer = malloc (len);
+		bzero(mqp->outbuffer, len);
 		mqp->outbufferlen = sqlite_encode_binary (mqpacket->data, mqpacket->dataoffset, mqp->outbuffer);
+		printf("len %d %d %d\n", len, mqpacket->dataoffset, mqp->outbufferlen);
 		mqp->outoffset = mqp->outbufferlen;
 		if (mqp->outbufferlen > 0) {
+			i = write (mqp->sock, mqp->outbuffer, mqp->outbufferlen);
 			list_delete (mqp->outpack, node);
 			lnode_destroy (node);
-			i = write (mqp->sock, mqp->outbuffer, mqp->outbufferlen);
 			if (i == mqp->outbufferlen) {
 				free (mqp->outbuffer);
 				mqp->bufferlen = mqp->offset = 0;
@@ -512,6 +523,7 @@ pck_before_poll (struct pollfd ufds[MAXCONNECTIONS])
 	node = list_first (connections);
 	while (node != NULL) {
 		mqp = lnode_get (node);
+printf("mqp->sock %d events (%d) - %d\n", mqp->sock, mqp->pollopts, list_count(connections));
 		if (mqp->pollopts > 0) {
 			//ufds = realloc (ufds, count + 1 * sizeof (struct pollfd));
 			ufds[count].fd = mqp->sock;
@@ -526,6 +538,7 @@ pck_before_poll (struct pollfd ufds[MAXCONNECTIONS])
 	}
 	/* now do the listen ports */
 	if (mqpconfig.listenfd > 0) {
+printf("doing listen port %d\n", mqpconfig.listenfd);
 		//ufds = realloc (ufds, count + 1 * sizeof (struct pollfd));
 		ufds[count].fd = mqpconfig.listenfd;
 		/* XXX */
@@ -539,18 +552,27 @@ int
 pck_after_poll (const struct pollfd *ufds, int nfds)
 {
 	int i;
-	for (i = 0; i < nfds; i++) {
+	printf("%d\n", nfds);
+	if (nfds == 0) {
+		return NS_SUCCESS;
+	}
+	for (i = 0; i <= nfds; i++) {
+printf("checking fd %d %d\n", ufds[i].fd, ufds[i].revents);
 		if (mqpconfig.listenfd == ufds[i].fd) {
+printf("accept!\n");
 			pck_accept_connection (ufds[i].fd);
 			continue;
 		}
-		if (ufds[i].revents == POLLHUP || ufds[i].revents == POLLERR) {
+		if (ufds[i].revents & POLLHUP || ufds[i].revents & POLLERR) {
+printf("close %d\n", ufds[i].fd);
 			close_fd (ufds[i].fd, NULL);
 		}
-		if (ufds[i].revents == POLLIN) {
+		if (ufds[i].revents & POLLIN) {
+printf("readfd %d\n", ufds[i].fd);
 			read_fd (ufds[i].fd, NULL);
 		}
-		if (ufds[i].revents == POLLOUT) {
+		if (ufds[i].revents & POLLOUT) {
+printf("writefd %d\n", ufds[i].fd);
 			write_fd (ufds[i].fd, NULL);
 		}
 	}
@@ -575,6 +597,7 @@ pck_process ()
 
 	i = pck_before_poll (ufds);
 	j = poll (ufds, i, 100);
+
 	if (j < 0) {
 		if (mqpconfig.logger) 
 			mqpconfig.logger("poll returned %d: %s", j, strerror(j));
@@ -652,6 +675,9 @@ pck_accept_connection (int fd)
 	} else {
 		MQP_SET_AUTHED(mqp);
 	}
+	if (mqpconfig.logger) 
+		mqpconfig.logger ("Connection on fd %d", l);
+		
 	/* send out caps and wait for reply for client caps */
 	pck_send_srvcap(mqp);
 	mqp->pollopts |= POLLIN;
@@ -677,14 +703,18 @@ pck_make_connection (struct sockaddr_in sa, void *cbarg)
 
 	flags = connect (s, (struct sockaddr *) &sa, sizeof (sa));
 	if (flags < 0) {
-		if (mqpconfig.logger)
-			mqpconfig.logger ("Connect Failed");
-		return NS_FAILURE;
+		if (errno != EINPROGRESS) {
+			if (mqpconfig.logger)
+				mqpconfig.logger ("Connect Failed %s", strerror(errno));
+			return NS_FAILURE;
+		}
 	}
 	mqp = pck_new_conn (cbarg, PCK_IS_SERVER);
 	mqp->sock = s;
 	/* outgoing connections are always authed */
 	MQP_SET_AUTHED(mqp);
-	mqp->pollopts |= POLLOUT;
+	mqp->pollopts |= POLLIN;
+	if (mqpconfig.logger) 
+		mqpconfig.logger("OutGoing Connection on fd %d", s);
 	return s;
 }
