@@ -35,6 +35,9 @@
 #include "dotconf.h"
 #include "dns.h"
 #include "packet.h"
+#include "serversock.h"
+#include "mythread.h"
+
 
 /*! Date when we were compiled */
 const char version_date[] = __DATE__;
@@ -86,6 +89,10 @@ main (int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 #endif
+	/* start up the thread engine */
+	init_threadengine();
+
+
 	/* before we do anything, make sure logging is setup */
 	if(init_logs () != NS_SUCCESS)
 		return EXIT_FAILURE;
@@ -118,11 +125,8 @@ main (int argc, char *argv[])
 	/* prepare to catch errors */
 	setup_signals ();
 
-	/* init libevent */
-	event_init();
+
 	
-	pck_init();
-	pck_set_logger(pck_logger);
 	/* load the config files */
 	if(ConfLoad () != NS_SUCCESS)
 		return EXIT_FAILURE;
@@ -139,11 +143,7 @@ main (int argc, char *argv[])
 		return EXIT_FAILURE;
 
 
-	if (init_client_list() != NS_SUCCESS)
-		return EXIT_FAILURE;
-	
-
-#ifndef DEBUG
+#if 0
 	/* if we are compiled with debug, or forground switch was specified, DONT FORK */
 	if (!config.foreground) {
 		/* fix the double log message problem by closing logs prior to fork() */ 
@@ -168,7 +168,7 @@ main (int argc, char *argv[])
 			}
 			return EXIT_SUCCESS; /* parent exits */ 
 		}
-#ifndef DEBUG
+#if 0
 		/* child (daemon) continues */ 
 		/* reopen logs for child */ 
 		if(init_logs () != NS_SUCCESS)
@@ -181,7 +181,10 @@ main (int argc, char *argv[])
 #endif
 	nlog (LOG_NOTICE, LOG_CORE, "MQServer started (Version %s).", me.versionfull);
 	/* we are ready to start now Duh! */
-	start ();
+
+	/* XXX init server socket thread */
+	MQS_sock_start();
+
 
 	/* We should never reach here but the compiler does not realise and may
 	   complain about not all paths control returning values without the return 
@@ -471,11 +474,3 @@ void fatal_error(char* file, int line, char* func, char* error_text)
 	do_exit (NS_EXIT_ERROR, "Fatal Error - check log file");
 }
 
-void pck_logger(char *fmt,...) {
-	va_list ap;
-	char log_buf[BUFSIZE];
-	va_start(ap, fmt);
-	vsnprintf(log_buf, BUFSIZE, fmt, ap);
-	va_end(ap);
-	nlog(LOG_DEBUG2, LOG_CORE, "%s", log_buf);
-}

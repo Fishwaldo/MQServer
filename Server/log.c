@@ -23,18 +23,24 @@
 ** $Id$
 */
 
+#include <pthread.h>
+
 #include "config.h"
 #include "defines.h"
 #include "conf.h"
 #include "hash.h"
 #include "log.h"
 #include "dotconf.h"
+#include "mythread.h"
 #ifdef HAVE_BACKTRACE
 #include <execinfo.h>
 #endif
 
 const char* CoreLogFileName="MQServer";
 char LogFileNameFormat[MAX_LOGFILENAME]="-%m-%d";
+
+
+mylocks logmutex;
 
 const char *loglevels[10] = {
 	"CRITICAL",
@@ -67,12 +73,18 @@ int
 init_logs ()
 {
 	SET_SEGV_LOCATION();
+
+	MYLOCK_INIT(logmutex);
+	MYLOCK(&logmutex);
+
 	logs = hash_create (-1, 0, 0);
 	if (!logs) {
 		printf ("ERROR: Can't initialize log subsystem. Exiting!");
+		MYUNLOCK(&logmutex);
 		return NS_FAILURE;
 	}
 	printf("Logging Subsystem Started\n");
+	MYUNLOCK(&logmutex);
 	return NS_SUCCESS;
 }
 
@@ -86,6 +98,8 @@ close_logs ()
 	struct logs_ *logentry;
 
 	SET_SEGV_LOCATION();
+
+	MYLOCK(&logmutex);
 	hash_scan_begin (&hs, logs);
 	while ((hn = hash_scan_next (&hs)) != NULL) {
 		logentry = hnode_get (hn);
@@ -103,6 +117,7 @@ close_logs ()
 		hnode_destroy (hn);
 		free (logentry);
 	}
+	MYUNLOCK(&logmutex);
 }
 
 void 
@@ -112,6 +127,8 @@ fini_logs() {
 	struct logs_ *logentry;
 
 	SET_SEGV_LOCATION();
+
+	MYLOCK(&logmutex);
 	hash_scan_begin (&hs, logs);
 	while ((hn = hash_scan_next (&hs)) != NULL) {
 		logentry = hnode_get (hn);
@@ -131,6 +148,7 @@ fini_logs() {
 	}
 	/* for some reason, the logs are not getting flushed correctly */
 	hash_destroy(logs);
+	MYUNLOCK(&logmutex);
 }
 
 void make_log_filename(char* modname, char *logname)
@@ -149,6 +167,8 @@ nlog (int level, int scope, char *fmt, ...)
 	va_list ap;
 	hnode_t *hn;
 	struct logs_ *logentry;
+	
+	MYLOCK(&logmutex);
 	
 	if (level <= config.debug) {
 		/* if scope is > 0, then log to a diff file */
@@ -191,6 +211,7 @@ nlog (int level, int scope, char *fmt, ...)
 #ifdef DEBUG
 		if (!logentry->logfile) {
 			printf ("LOG ERROR: %s\n", strerror (errno));
+			MYUNLOCK(&logmutex);
 			do_exit (NS_EXIT_NORMAL, NULL);
 		}
 #endif
@@ -209,6 +230,7 @@ nlog (int level, int scope, char *fmt, ...)
 #endif
 			printf ("%s %s - %s\n", loglevels[level - 1], scope > 0 ? segv_inmodule : "CORE", log_buf);
 	}
+	MYUNLOCK(&logmutex);
 }
 
 /** rotate logs, called at midnight
@@ -221,6 +243,7 @@ reset_logs ()
 	struct logs_ *logentry;
 
 	SET_SEGV_LOCATION();
+	MYLOCK(&logmutex);
 	hash_scan_begin (&hs, logs);
 	while ((hn = hash_scan_next (&hs)) != NULL) {
 		logentry = hnode_get (hn);
@@ -239,6 +262,7 @@ reset_logs ()
 		/* make new file name but do not open until needed to avoid 0 length files*/
 		make_log_filename(logentry->name, logentry->logname);
 	}
+	MYUNLOCK(&logmutex);
 }
 
 /* this is for printing out details during an assertion failure */

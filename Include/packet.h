@@ -29,64 +29,12 @@
 #include "defines.h"
 #include "xds.h"
 #include "xds_engine_xdr_mqs.h"
-#include "list.h"
 
+/* encoding engine structs */
+#define NUMENGINES 30
 
-#ifndef INPACK_MAX
-#define INPACK_MAX 100
-#endif
-
-#ifndef OUTPACK_MAX
-#define OUTPACK_MAX 100
-#endif
-
-#define PCK_MIN_PACK_SIZE 84
-
-
-list_t *connections;
-
-
-#define MQP_CLIENTAUTHED 0x01
-#define MQP_CLIENTSETUP 0x02
-
-#define MQP_IS_AUTHED(x) (x->flags & MQP_CLIENTAUTHED)
-#define MQP_SET_AUTHED(x) (x->flags |= MQP_CLIENTAUTHED)
-
-#define MQP_IS_SETUP(x) ((x->flags & MQP_CLIENTSETUP) && (x->flags & MQP_CLIENTAUTHED))
-#define MQP_SET_SETUP(x) (x->flags |= MQP_CLIENTSETUP)
-
-
-
-/* client protocol struct */
-typedef struct mqprotocol {
-	list_t *inpack;
-	unsigned long nxtinmid;
-	list_t *outpack;
-	unsigned long nxtoutmid;
-	int wtforinpack;
-	int servorclnt;
-	int sock;
-	int pollopts;
-	int flags;
-	void *cbarg;
-	void *buffer;
-	size_t bufferlen;
-	size_t offset;
-	void *outbuffer;
-	size_t outbufferlen;
-	size_t outoffset;
-} mqprotocol;	
-
-typedef void (logfunc)(char *fmt, ...)  __attribute__((format(printf,1,2))); /* 3=format 4=params */
-typedef int (connectauthfunc)(int fd, struct sockaddr_in);
-
-struct mqpconfig {
-	logfunc *logger;
-	connectauthfunc *connectauth;
-	int server;
-	int port;
-	int listenfd;
-} mqpconfig; 	 
+#define ENG_TYPE_XDR 1
+#define ENG_TYPE_XML 2
 
 /* server or client or repl flags mqprotocol->servorclnt */
 #define PCK_IS_CLIENT	0x1
@@ -97,19 +45,7 @@ struct mqpconfig {
 #define MQP_IS_SERVER(x) (x->servorclnt & PCK_IS_SERVER)
 #define MQP_IS_REPL(x) (x->servorclnt & PCK_IS_REPL)
 
-/* individual packets struct */
-typedef struct mqpacket {
-	unsigned long MID;
-	int MSGTYPE;
-	int VERSION;
-	unsigned long flags;
-	void *data;
-	unsigned long dataoffset;
-	xds_t *xds;
-} mqpacket;
-
-
-/* flags to indicate the connection status */
+/* flags to indicate the message type */
 #define PCK_ACK			1
 #define PCK_ERROR		2
 #define PCK_SRVCAP		3
@@ -130,25 +66,91 @@ typedef struct mqpacket {
 #define PCK_SENTTOCLNT		18
 #define PCK_MSGFROMCLNT		19
 
+/* format strings */
+#define PCK_ACK_FMT		"int32"
+#define PCK_ERROR_FMT		"string"
+#define PCK_SRVCAP_FMT		"int32 int32 string"
+
+
+
 /* packet flags, not message flags */
 #define PCK_FLG_REQUIREACK		0x01
 #define PCK_FLG_REQUIREACPPROCESS 	0x02
 
 
-/* encoding engine structs */
-#define NUMENGINES 9
+struct mq_data_stream {
+	void *data;
+	size_t len;
+} mq_data_stream;
 
-#define ENG_TYPE_XDR 1
-#define ENG_TYPE_XML 2
+struct mq_data_srvcap {
+	int srvcap1;
+	int srvcap2;
+	char *capstr;
+} mq_data_srvcap;
 
-typedef struct myengines {
+
+
+struct message {
+	int MID;
+	int MSGTYPE;
+	int VERSION;
+	int flags;
+	union {
+		struct mq_data_stream *stream;
+		struct mq_data_srvcap *srvcap;
+		char *string;
+		int num;
+	} data;
+} message;	
+
+struct simpleif {
+	char username[BUFSIZE];
+	char password[BUFSIZE];
+	char host[BUFSIZE];
+	long flags;
+} simpleif;
+
+/* client protocol struct */
+typedef struct mqpacket {
+	int nxtoutmid;
+	int servorclnt;
+	int sock;
+	int pollopts;
+	int flags;
+	struct simpleif si;
+	void *cbarg;
+	void *buffer;
+	size_t bufferlen;
+	size_t offset;
+	void *outbuffer;
+	size_t outbufferlen;
+	size_t outoffset;
+	struct message inmsg;
+	struct message outmsg;
+	xds_t *xdsin;
+	xds_t *xdsout;
+} mqpacket;	
+
+typedef void (logfunc)(char *fmt, ...)  __attribute__((format(printf,1,2))); /* 3=format 4=params */
+typedef int (connectauthfunc)(mqp *, mqpacket *);
+typedef int (callbackfunc)(mqp *, mqpacket *);
+
+
+typedef struct myeng {
+	xds_mode_t dir;
+	int type;
 	xds_engine_t ptr;
 	const char myname[BUFSIZE];
-}myengines;
-
-extern myengines enc_xdr_engines[NUMENGINES];
+} myeng;
 
 
+typedef struct mqp {
+	logfunc *logger;
+	connectauthfunc *connectauth;
+	myeng *myengines;
+	callbackfunc *callback;
+} mqp; 	 
 
 
 extern int encode_mqs_header (xds_t * xds, void *engine_context, void *buffer, size_t buffer_size, size_t * used_buffer_size, va_list * args);
@@ -157,23 +159,49 @@ extern int decode_mqs_header (xds_t * xds, void *engine_context, void *buffer, s
 
 
 
-void pck_init();
-void pck_set_logger(logfunc *logger);
-mqprotocol *pck_new_conn(void *cbarg, int type);
-int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen);
+void pck_set_logger(mqp *, logfunc *logger);
+void pck_set_callback(mqp *, callbackfunc *);
+void pck_set_authcallback(mqp *, connectauthfunc *);
+mqp *init_mqlib ();
+int read_fd (mqp *mqplib, mqpacket *mqp);
+int close_fd (mqp *mqplib, mqpacket * mqp);
+int write_fd (mqp *mqplib, mqpacket * mqp);
+mqpacket * pck_new_connection (mqp *mqplib, int fd, int type, int contype);
+void print_decode(void *buf, size_t len);
+int pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long buflen);
+unsigned long send_ack(mqp *mqplib, mqpacket *mqp, int MID);
 
 
-void pck_destroy_mqpacket(mqpacket *mqpck, mqprotocol *mqp);
-mqpacket *pck_create_mqpacket(int type, xds_mode_t direction);
-lnode_t *pck_find_mid_node(unsigned long MID, list_t *queue);
-mqpacket *pck_new_packet (int msgtype, unsigned long flags);
-unsigned long pck_commit_data (mqprotocol * mqp, mqpacket * mqpck);
-void pck_set_server();
-int pck_process();
-int pck_make_connection(struct sockaddr_in sa, void *cbarg);
+
+
+/* this is the standalone un-threadsafe interface */
+int init_socket();
+int debug_socket(int i);
+int enable_server(int port);
+int pck_process ();
+int pck_make_connection (char *hostname, char *, char *, long , void *cbarg);
+
 
 
 /* these are error defines */
 #define PCK_ERR_BUFFULL		1
 #define PCK_ERR_CRC		2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #endif

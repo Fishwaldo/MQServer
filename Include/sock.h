@@ -26,11 +26,4 @@
 #ifndef SOCK_H
 #define SOCK_H
 
-int ConnectTo (char * host, int port);
-void read_loop (void);
-int getmaxsock (void);
-void sts (const char *buf, const int buflen);
-void start (void);
-
-int check_sql_sock();
 #endif

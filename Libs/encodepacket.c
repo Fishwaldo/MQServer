@@ -31,90 +31,130 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-/* needed for crc32 function */
-#include <zlib.h>
 
 #include "defines.h"
 #include "list.h"
 #include "packet.h"
-#include "getchar.h"
+
+#define SRVCAP1 2
+#define SRVCAP2 3
 
 
-int sqlite_encode_binary (const unsigned char *in, int n, unsigned char *out);
+unsigned long pck_commit_data (mqp * mqplib, mqpacket * mqpck);
+void print_decode(void *buf, size_t len);
 
-mqpacket *
-pck_new_packet (int msgtype, unsigned long flags)
-{
-	mqpacket *mqpck;
 
-	mqpck = pck_create_mqpacket (ENG_TYPE_XDR, XDS_ENCODE);
-	if (mqpck == NULL)
-		return NULL;
-	/* MID is null till we send, this way we can reuse this packet def */
-	mqpck->MID = -1;
-	mqpck->MSGTYPE = msgtype;
-	mqpck->flags = flags;
-	mqpck->dataoffset = 0;
-	mqpck->data = NULL;
-	if (mqpconfig.logger)
-		mqpconfig.logger ("Created a New Packet with MID %lud", mqpck->MID);
-	return mqpck;
+
+int pck_prepare(mqp *mqplib, mqpacket *mqp, int type) {
+	int rc;
+	if (mqp->outmsg.MID == -1) {
+		mqp->outmsg.MID = mqp->nxtoutmid++;
+		mqp->outmsg.VERSION = 1;
+		mqp->outmsg.MSGTYPE = type;
+		rc = xds_encode (mqp->xdsout, "mqpheader", mqp);
+		if (rc != XDS_OK) {
+			if (mqplib->logger)
+				mqplib->logger ("xds encode header failed %d.", rc);
+			return NS_FAILURE;
+		}
+		return NS_SUCCESS;
+	} else {
+		if (mqplib->logger) {
+			mqplib->logger("Outbound Message Not clear %d", mqp->outmsg.MID);
+		}
+		return NS_FAILURE;
+	}
 }
 
-int
-pck_set_packet_data (mqpacket * mqpck, void *data, size_t len)
-{
-	/* if its empty, malloc it */
-	/* size is taken from encode.c sqlite_encode_binary description */
-#if 0
-	mqpck->data = malloc (2 + (257 * len) / 254);
-	mqpck->dataoffset = sqlite_encode_binary (data, len, mqpck->data);
-	printf ("Encode Size %lu Allocated %d\n", mqpck->dataoffset, 2 + (257 * len) / 254);
-#endif
+int pck_remove(mqp *mqplib, mqpacket *mqp) {
+	mqp->outmsg.MID = -1;
 	return NS_SUCCESS;
 }
 
-unsigned long
-pck_commit_data (mqprotocol * mqp, mqpacket * mqpck)
-{
-	lnode_t *node;
-	int rc;
-	unsigned char *data;
-	int length;
 
-	if (list_isfull (mqp->outpack)) {
-		if (mqpconfig.logger)
-			mqpconfig.logger ("OutBuffer is Full.");
+unsigned long pck_send_ack(mqp *mqplib, mqpacket *mqp, int MID) {
+	int rc;
+	
+	if (pck_prepare(mqplib, mqp, PCK_ACK) != NS_SUCCESS) {
 		return NS_FAILURE;
 	}
-	if (mqpck == NULL) {
-		if (mqpconfig.logger)
-			mqpconfig.logger("pck_commit_data was empty");
+	rc = xds_encode (mqp->xdsout, PCK_ACK_FMT, MID);
+
+	if (rc != XDS_OK) {
+		if (mqplib->logger)
+			mqplib->logger ("xds encode ack failed %d.", rc);
 		return NS_FAILURE;
 	}
 	
-	/* we are always at version one atm */
-	mqpck->VERSION = 1;
-	/* increment the mid */
-	mqpck->MID = mqp->nxtoutmid++;
-	rc = xds_encode (mqpck->xds, "mqpheader", &mqpck);
-
-	if (rc != XDS_OK) {
-		if (mqpconfig.logger)
-			mqpconfig.logger ("xds encode header failed %d.", rc);
-		pck_destroy_mqpacket (mqpck, NULL);
-		return -1;
-	}
-	rc = xds_getbuffer (mqpck->xds, XDS_GIFT, (void **) &mqpck->data, (size_t *)&mqpck->dataoffset) ;
-	if (rc != XDS_OK) {
-		if (mqpconfig.logger)
-			mqpconfig.logger ("OutBuffer is Full. %d", rc);
-		pck_destroy_mqpacket (mqpck, NULL);
-		return -1;
-	}
-	node = lnode_create (mqpck);
-	list_append (mqp->outpack, node);
-	write_fd(mqp->sock, mqp);
-
-	return mqpck->MID;
+	return (pck_commit_data(mqplib, mqp));
 }
+
+unsigned long pck_send_srvcap(mqp *mqplib, mqpacket *mqp) {
+	int rc;
+	char srvcap[BUFSIZE];
+	
+	
+	if (pck_prepare(mqplib, mqp, PCK_SRVCAP) != NS_SUCCESS) {
+		return NS_FAILURE;
+	}
+	
+	snprintf(srvcap, BUFSIZE, "STD");
+#ifdef DEBUG	
+	strncat(srvcap, ":DBG", BUFSIZE);
+#endif	
+	rc = xds_encode (mqp->xdsout, PCK_SRVCAP_FMT, SRVCAP1, SRVCAP2, srvcap);
+
+	if (rc != XDS_OK) {
+		if (mqplib->logger)
+			mqplib->logger ("xds encode srvcap failed %d.", rc);
+		return NS_FAILURE;
+	}
+	
+	return (pck_commit_data(mqplib, mqp));
+}
+
+
+unsigned long pck_send_error(mqp *mqplib, mqpacket *mqp, char *fmt, ...) {
+	int rc;
+	va_list ap;
+	char log_buf[BUFSIZE];
+		
+	if (pck_prepare(mqplib, mqp, PCK_ERROR) != NS_SUCCESS) {
+		return NS_FAILURE;
+	}
+
+	va_start(ap, fmt);
+	vsnprintf(log_buf, BUFSIZE, fmt, ap);
+	va_end(ap);
+
+	rc = xds_encode (mqp->xdsout, PCK_ERROR_FMT, log_buf);
+
+	if (rc != XDS_OK) {
+		if (mqplib->logger)
+			mqplib->logger ("xds encode error failed %d.", rc);
+		return NS_FAILURE;
+	}
+	
+	return (pck_commit_data(mqplib, mqp));
+}
+
+
+unsigned long
+pck_commit_data (mqp * mqplib, mqpacket * mqpck)
+{
+	int rc;
+
+	rc = xds_getbuffer (mqpck->xdsout, XDS_GIFT, (void **) &mqpck->outbuffer, &mqpck->outbufferlen) ;
+	if (rc != XDS_OK) {
+		if (mqplib->logger)
+			mqplib->logger ("OutBuffer is Full. %d", rc);
+		return NS_FAILURE;
+	}
+	print_decode(mqpck->outbuffer, mqpck->outbufferlen);
+	write_fd(mqplib, mqpck);
+	rc = mqpck->outmsg.MID;
+	pck_remove(mqplib, mqpck);
+	return rc;
+}
+
+

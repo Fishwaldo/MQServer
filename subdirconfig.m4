@@ -3,7 +3,7 @@ dnl NEO_SUBDIR_CONFIG(dir [, sub-package-cmdline-args])
 dnl
 dnl Note that this code is a direct copy of that which is found in 
 dnl the apr project's build/apr_common.m4.
-AC_DEFUN(NEO_SUBDIR_CONFIG, [
+AC_DEFUN([NEO_SUBDIR_CONFIG], [
     # save our work to this point; this allows the sub-package to use it
     AC_CACHE_SAVE
 

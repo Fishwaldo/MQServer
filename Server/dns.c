@@ -36,6 +36,7 @@
 #include "log.h"
 #include "adns.h"
 #include "dns.h"
+#include "serversock.h"
 
 adns_state ads;
 
@@ -78,6 +79,15 @@ list_t *dnsqueue;
 
 
 void dns_check_queue();
+
+
+void setup_dns_socks() {
+	/* acutally it would be better to use the select/poll interface, but this makes it easy */
+	adns_processany(ads);
+	do_dns();
+}
+
+
 
 /** @brief starts a DNS lookup
  *
@@ -383,4 +393,47 @@ void do_dns_stats_Z() {
 	numeric (RPL_MEMSTATS, u->nick, "SuccessFull Lookups: %d", DNSStats.success);
 	numeric (RPL_MEMSTATS, u->nick, "Un-Successfull Lookups: %d", DNSStats.failure);
 #endif
+}
+
+void got_reverse_lookup_answer(void *data, adns_answer * a) {
+	mqsock *mqs = data;
+	int len, ri;
+	char *show;
+	if (a) {
+		adns_rr_info(a->type, 0, 0, &len, 0, 0);
+		if (a->nrrs > 0) {
+			ri = adns_rr_info(a->type, 0, 0, 0, a->rrs.bytes, &show);
+			if (!ri) {
+				nlog(LOG_DEBUG2, LOG_CORE, "DNS for Host %s resolves to %s", mqs->host, show);
+				strncpy(mqs->host, show, MAXHOST);
+			} else {
+				nlog(LOG_WARNING, LOG_CORE, "Dns Error: %s", adns_strerror(ri));
+			}
+			free(show);
+		} else {
+			nlog(LOG_DEBUG2, LOG_CORE, "DNS for IP %s Does not resolve", mqs->host);
+		}
+	}		
+	MQC_CLEAR_STAT_DNSLOOKUP(mqs);
+	/* XXX check bans? */
+
+
+#if 0
+	/* ok, create a new client */
+	if (MQC_IS_TYPE_CLIENT(mqc)) 
+		mqc->pck = pck_new_conn((void *)mqc, PCK_IS_CLIENT);
+	
+	/* if there is data in the buffer, see if we can parse it already */
+	while (mqc->offset >= PCK_MIN_PACK_SIZE) {
+		len = pck_parse_packet(mqc->pck, mqc->buffer, mqc->offset);
+		buffer_del(mqc, len);
+		printf("dns processed %d bytes, %d left\n", len, mqc->offset);
+	}
+#endif
+}
+
+void do_reverse_lookup(mqsock *mqs) {
+	/* at this stage, what ever is in host, will be a plain ip address */
+	dns_lookup(mqs->host, adns_r_ptr, got_reverse_lookup_answer, (void *)mqs);
+	MQC_SET_STAT_DNSLOOKUP(mqs);	
 }

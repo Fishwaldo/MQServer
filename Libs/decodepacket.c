@@ -42,94 +42,87 @@
 
 /* this is called from the socket recv code. */
 int
-pck_parse_packet (mqprotocol * mqp, u_char * buffer, unsigned long buflen)
+pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long buflen)
 {
-	mqpacket *mqpck;
-	u_char *buf2, *mybuf;
-	int rc, len;
+	int rc, usedbuf;
 
-	if (mqp->wtforinpack == 1) {
-		if (!strchr(buffer, '\0')) {
-			if (mqpconfig.logger) 
-				mqpconfig.logger ("Buffer isn't terminated\n");
-		}
-		mybuf = malloc(buflen);
-		len = sqlite_decode_binary(buffer, mybuf);
-		printf("decode %d\n", len);
-		/* XXX XDR engine for now */
-		mqpck = pck_create_mqpacket (ENG_TYPE_XDR, XDS_DECODE);
-		if (mqpck == NULL) {
-			if (mqpconfig.logger)
-				mqpconfig.logger("create packet failed");
-			/* XXX drop client ? */
-			free(mybuf);
-			return NS_FAILURE;
-		}
-		if (xds_setbuffer (mqpck->xds, XDS_LOAN, mybuf, len) != XDS_OK) {
-			if (mqpconfig.logger)
-				mqpconfig.logger ("XDS setbuffer Failed");
-			pck_destroy_mqpacket (mqpck, NULL);
-			/* XXX drop client ? */
-			free(mybuf);
-			return NS_FAILURE;
-		}
-		/* lets use a switch here to handle it intelegently */
-		rc = xds_decode (mqpck->xds, "mqpheader", &mqpck);
-		free(mybuf);
-		switch (rc) {
+
+	print_decode(buffer, buflen);
+
+	/* XXX XDR engine for now */
+	if (xds_setbuffer (mqp->xdsin, XDS_LOAN, buffer, buflen) != XDS_OK) {
+		if (mqplib->logger)
+			mqplib->logger ("XDS setbuffer Failed");
+		/* XXX drop client ? */
+		return NS_FAILURE;
+	}
+	/* lets use a switch here to handle it intelegently */
+	rc = xds_decode (mqp->xdsin, "mqpheader", mqp);
+	switch (rc) {
 		case XDS_OK:
+			usedbuf = xds_get_usedbuffer (mqp->xdsin);
 			printf("breaking here\n");
 			break;
 		case XDS_ERR_UNDERFLOW:
-			if (mqpconfig.logger)
-				mqpconfig.logger ("XDS Decode of Header Failed. Buffer Underflow");
-			pck_destroy_mqpacket (mqpck, NULL);
+			if (mqplib->logger)
+				mqplib->logger ("XDS Decode of Header Failed. Buffer Underflow");
 			/* don't consume any buffer */
 			return NS_SUCCESS;
 		default:
-			if (mqpconfig.logger)
-				mqpconfig.logger ("XDS Decode of Header Failed: %d", rc);
-			pck_destroy_mqpacket (mqpck, NULL);
+			if (mqplib->logger)
+				mqplib->logger ("XDS Decode of Header Failed: %d", rc);
 			/* drop client */
 			return NS_FAILURE;
-		}
-		if (mqpconfig.logger)
-			mqpconfig.logger ("Got Packet Decode: mid %lu msgtype %d Version %d flags %lu ", mqpck->MID, mqpck->MSGTYPE, mqpck->VERSION, mqpck->flags);
-
+	}
+	if (mqplib->logger)
+		mqplib->logger ("Got Packet Decode: mid %d msgtype %d Version %d flags %d ", mqp->inmsg.MID, mqp->inmsg.MSGTYPE, mqp->inmsg.VERSION, mqp->inmsg.flags);
 		/* check the version number */
-		if (mqpck->VERSION != 1) {
-			if (mqpconfig.logger)
-				mqpconfig.logger ("Invalid Protocol Version recieved");
-			pck_destroy_mqpacket (mqpck, NULL);
-			/* XXX drop client ? */
-			return NS_FAILURE;
-		}
-		/* ok, lets handle this message based on the message type */
-		switch (mqpck->MSGTYPE) {
-
-
+	if (mqp->inmsg.VERSION != 1) {
+		if (mqplib->logger)
+			mqplib->logger ("Invalid Protocol Version recieved");
+		/* XXX drop client ? */
+		return usedbuf;
+	}
+	/* ok, lets handle this message based on the message type */
+	switch (mqp->inmsg.MSGTYPE) {
+		case PCK_ACK:
+			rc = xds_decode(mqp->xdsin, PCK_ACK_FMT, &mqp->inmsg.data.num);
+printf("%d\n", mqp->inmsg.data.num);
+			break;
+		case PCK_ERROR:
+			mqp->inmsg.data.string = malloc(BUFSIZE);
+			rc = xds_decode(mqp->xdsin, PCK_ERROR_FMT, &mqp->inmsg.data.string);
+printf("%s\n", mqp->inmsg.data.string);
+			break;
+		case PCK_SRVCAP:
+			rc = xds_decode(mqp->xdsin, PCK_SRVCAP_FMT, &mqp->inmsg.data.srvcap->srvcap1, &mqp->inmsg.data.srvcap->srvcap2, &mqp->inmsg.data.srvcap->capstr);
+printf("%d %d\n", strlen(mqp->inmsg.data.srvcap->capstr), rc);
+printf("%d %d %s\n", mqp->inmsg.data.srvcap->srvcap1, mqp->inmsg.data.srvcap->srvcap2, mqp->inmsg.data.srvcap->capstr);
+			break;
 		default:
-			if (mqpconfig.logger)
-				mqpconfig.logger ("Invalid MsgType Recieved");
-//			pck_destroy_mqpacket (mqpck, NULL);
+			if (mqplib->logger)
+				mqplib->logger ("Invalid MsgType Recieved");
 			/* XXX drop client */
+			return usedbuf;
+	}
+	switch (rc) {
+		case XDS_OK:
+			usedbuf = xds_get_usedbuffer (mqp->xdsin);
+			printf("decode data ok\n");
+			break;
+		case XDS_ERR_UNDERFLOW:
+			if (mqplib->logger)
+				mqplib->logger ("XDS Decode of Data Failed. Buffer Underflow");
+			/* don't consume any buffer */
+			return NS_SUCCESS;
+		default:
+			if (mqplib->logger)
+				mqplib->logger ("XDS Decode of Data Failed: %d", rc);
+			/* drop client */
 			return NS_FAILURE;
-		}
-		/* finished processing the message. grab what buffer we consumed and return */
-//		rc = xds_get_usedbuffer (mqpck->xds);
-//		pck_destroy_mqpacket (mqpck, NULL);
-		return len;
 	}
 
-	/* nothing done on the buffer, so return 0 */
-	return 0;
+	/* finished processing the message. grab what buffer we consumed and return */
+	return usedbuf;
 }
 
-void
-pck_send_err (mqprotocol * mqp, int err, const char *msg)
-{
-
-	if (mqpconfig.logger)
-		mqpconfig.logger ("pck_send_error: %s", msg);
-
-}

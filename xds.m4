@@ -28,7 +28,7 @@ dnl ##
 dnl ##  xds.m4: XDS-specific autoconf macros
 dnl ##
 
-AC_DEFUN(AC_XDS,[
+AC_DEFUN([AC_XDS],[
 dnl Check for exact data types.
 dnl
 AC_CHECK_TYPE(u_int8_t, [xds_uint8_t=u_int8_t],

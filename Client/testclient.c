@@ -32,50 +32,20 @@
                      
 #include "defines.h"
 #include "packet.h"
+#include "log.h"
 
 void pck_logger(char *fmt,...);
 
 int main() {
-	int connect;
-	struct sockaddr_in sa;
-	struct hostent *hp;
+	init_socket();
+	debug_socket(1);
 
-	pck_set_logger(pck_logger);	
-	pck_set_server();
-	pck_init();
-	connect = 0;
-	
-	if ((hp = gethostbyname("localhost")) == NULL) {
-		printf("gethostbyname failed\n");
-		exit(-1);
-	}
-	sa.sin_family = AF_INET;
-	sa.sin_port = htons(8888);
-	bcopy(hp->h_addr, (char *) &sa.sin_addr, hp->h_length);
-	
-	
+	pck_make_connection("localhost", "fish", "haha", 0, NULL);
 	while (1) {
 		pck_process();
-		sleep(2);
-		if (connect == 0) {
-			if (pck_make_connection(sa, NULL) == NS_FAILURE) {
-				printf("connect failed\n");
-				exit(-1);
-			} else {
-				connect = 1;
-			}
-		}
+		sleep(1);
 	}
-
 }
 
                                                 
 
-void pck_logger(char *fmt,...) {
-	va_list ap;
-	char log_buf[BUFSIZE];
-	va_start(ap, fmt);
-	vsnprintf(log_buf, BUFSIZE, fmt, ap);
-	va_end(ap);
-	printf("MQ: %s\n", log_buf);
-}

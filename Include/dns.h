@@ -23,6 +23,8 @@
 
 #ifndef _DNS_H_
 #define _DNS_H_
+#include "adns.h"
+#include "serversock.h"
 
 int init_dns (void);
 void do_dns (void);
@@ -30,5 +32,7 @@ void fini_adns();
 void canx_dns(const char *modname);
 void do_dns_stats_Z();
 int dns_lookup (char *str, adns_rrtype type, void (*callback) (void *data, adns_answer * a), void *data);
+void do_reverse_lookup(mqsock *mqs);
+void setup_dns_socks();
 
 #endif /* _DNS_H_ */

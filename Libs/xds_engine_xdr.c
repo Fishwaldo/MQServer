@@ -647,9 +647,8 @@ xdr_decode_string (xds_t * xds, void *engine_context, void *buffer, size_t buffe
 		return XDS_ERR_NO_MEM;
 
 	/* Copy data into the buffer. */
-	memmove (*p, (xds_uint8_t *) buffer + 4, p_len);
+	memmove (*p, (xds_uint8_t *) buffer + 4, p_len+1);
 	((xds_uint8_t *) buffer)[4 + p_len] = '\0';
-
 	return XDS_OK;
 }
 
