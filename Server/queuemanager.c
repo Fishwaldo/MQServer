@@ -43,9 +43,11 @@
 #include "mythread.h"
 #include "tcprioq.h"
 #include "dns.h"
+#include "callback.h"
 
 
 myqueues *authq;
+myqueues *messq;
 
 int authqcmp(const void *key1, const void *key2) {
 	authqitm *aqi = (authqitm *)key1;
@@ -54,11 +56,20 @@ int authqcmp(const void *key1, const void *key2) {
 }	
 
 extern int queueman_init() {
+	/* this is the authorize message queue */
 	authq = malloc(sizeof(myqueues));
 	authq->inqueue = tcprioq_new(AUTHQSIZE, 1, authqcmp);
 	authq->outqueue = tcprioq_new(AUTHQSIZE, 1, authqcmp);
 	pthread_mutex_init(&authq->mutex, NULL);
 	pthread_cond_init(&authq->cond, NULL); 
+	
+	/* this is the message queue queue */
+	messq = malloc(sizeof(myqueues));
+	messq->inqueue = tcprioq_new(MESSQSIZE, 1, authqcmp);
+	messq->outqueue = tcprioq_new(MESSQSIZE, 1, authqcmp);
+	pthread_mutex_init(&messq->mutex, NULL);
+	pthread_cond_init(&messq->cond, NULL);
+
 	return NS_SUCCESS;
 }	
 
@@ -66,11 +77,6 @@ extern int queueman_init() {
 extern int newauthqitm(mqsock *mqs, char *username, char *password, int mid) {
 	authqitm *aqi;
 	int i;
-	
-	/* lock the authq */
-	pthread_mutex_lock(&authq->mutex);
-
-
 	/* copy the iteam over */
 	aqi = malloc(sizeof(authqitm));
 	aqi->prio = PRIOQ_NORMAL;
@@ -81,6 +87,8 @@ extern int newauthqitm(mqsock *mqs, char *username, char *password, int mid) {
 	aqi->ip = mqs->ip;
 	aqi->mid = mid;
 		
+	/* lock the authq */
+	pthread_mutex_lock(&authq->mutex);
 	/* add it to the queue */
 	tcprioq_add(authq->inqueue, aqi);
 	
@@ -89,12 +97,12 @@ extern int newauthqitm(mqsock *mqs, char *username, char *password, int mid) {
 	/* if there is no thread, or we have x items in the queue, and have not reached out authq max threads setting, 
 	 * then start up a new thread 
 	 */
-	pthread_mutex_unlock(&authq->mutex);
 	if ((i <= 0) || ((tcprioq_items(authq->inqueue) > me.authqthreshold) && (i < me.authqmaxthreads))) {
 		/* start a new thread */
 		create_thread("authqm", init_authqueue, authq);
 	}	
 	/* wake up a thread */
+	pthread_mutex_unlock(&authq->mutex);
 	pthread_cond_signal(&authq->cond);
 	return NS_SUCCESS;
 }	
@@ -103,13 +111,15 @@ extern int newauthqitm(mqsock *mqs, char *username, char *password, int mid) {
 extern int qm_wait(myqueues *qi, int tmout) {
 	struct timeval now;
 	struct timespec timeout;
-	int retcode;
                              
 	pthread_mutex_lock(&qi->mutex);
 	gettimeofday(&now, NULL);
 	timeout.tv_sec = now.tv_sec + tmout;
 	timeout.tv_nsec = now.tv_usec;
-	retcode = 0;
+	/* if there is something in the queue, run now, else wait */
+	if (tcprioq_items(qi->inqueue) > 0) {
+		return 1;
+	} 
 	return (pthread_cond_timedwait(&qi->cond, &qi->mutex, &timeout));
 }	                                                         
 
@@ -121,12 +131,26 @@ extern int check_authq() {
 	pthread_mutex_lock(&authq->mutex);
 	i = tcprioq_items(authq->outqueue);
 	if (i > 0) {
-printf("checking authoutq %i\n", i);
 		while (!tcprioq_get(authq->outqueue, (void *)&aqi)) {
-printf("%ld %d\n", aqi->conid, aqi->mid);
 			MQS_Auth_Callback(aqi->conid, aqi->result, aqi->mid);
 			free(aqi);
 		}	
 	}                                                                                                                                                                                                             
 	pthread_mutex_unlock(&authq->mutex);
+	return NS_SUCCESS;
+}
+
+extern int check_messq() {
+	messqitm *mqi;
+	int i;
+	
+	/* lock the authq */
+	pthread_mutex_lock(&messq->mutex);
+	i = tcprioq_items(messq->outqueue);
+	if (i > 0) {
+		while (!tcprioq_get(messq->outqueue, (void *)&mqi)) {
+		}	
+	}                                                                                                                                                                                                             
+	pthread_mutex_unlock(&messq->mutex);
+	return NS_SUCCESS;
 }

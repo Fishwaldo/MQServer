@@ -44,6 +44,7 @@
 #include "admincli.h"
 #include "callback.h"
 #include "mythread.h"
+#include "queuemanager.h"
 
 int MQS_listen_on_port(int port, long type);
 
@@ -60,6 +61,7 @@ void MQS_Logger(char *fmt,...) {
 
 void MQS_remove_client(mqsock *mqs) {
 	nlog(LOG_DEBUG1, LOG_CORE, "Dropping client %d", mqs->data.fd);
+	close_fd(mqssetup.mqplib, mqs->mqp);
 	event_del(&mqs->ev);
 	list_delete(mqssetup.connections, mqs->node);
 	lnode_destroy(mqs->node);
@@ -92,25 +94,23 @@ void spawn_admin_thread(mqsock *mqs) {
 static int compare_conid(const void *arg1, const void *arg2) {
 	mqsock *mqs = (mqsock *)arg1;
 	int conid = (int)arg2;
-printf("%d - %d\n", mqs->connectid, conid);
-	if (mqs->connectid == conid) {
-		return 0;
-	} else {
-		return -1;
+	if (MQC_IS_TYPE_CLIENT_XDR(mqs) || MQC_IS_TYPE_CLIENT_XML(mqs)) {
+		if (mqs->connectid == conid) {
+			return 0;
+		} else {
+			return -1;
+		}
 	}
+	return -1;
 }
 
 extern mqsock *find_con_by_id(int id) {
-	lnode_t *node;
+	lnode_t *node = NULL;
 	mqsock *mqs;
 	node = list_find(mqssetup.connections, (void *)id, compare_conid);
 	if (node) {
 		mqs = lnode_get(node);
-		if (!mqs->mqp) {
-			printf("hrm, mqp missing\n");
-		}
-printf("return ok\n");
-		return lnode_get(node);
+		return mqs;
 	} 
 	return NULL;
 }
@@ -198,6 +198,7 @@ MQS_sock_start ()
 	struct event dnstimeout;
 	struct timeval tv;
 	
+	
 	SET_SEGV_LOCATION();
 
 	mqssetup.connections = list_create(-1);
@@ -243,7 +244,8 @@ MQS_sock_start ()
 		
 		/* check our queues */
 		check_authq();	
-	
+		check_messq();
+			
 		if (me.die) {
 			do_exit(NS_EXIT_NORMAL, "Normal Exit");
 		}
@@ -331,7 +333,7 @@ MQS_listen_on_port(int port, long type)
   mqs->data.fd = srvfd;
   event_set(&mqs->ev, mqs->data.fd, EV_READ|EV_PERSIST, MQS_listen_accept, mqs);
   event_add(&mqs->ev, NULL);	
-  nlog(LOG_DEBUG1, LOG_CORE, "Listening on %d (%d) for %x connections", port, srvfd, type);
+  nlog(LOG_DEBUG1, LOG_CORE, "Listening on %d (%d) for %lx connections", port, srvfd, type);
 
   mqs->node = lnode_create(mqs);
   list_append(mqssetup.connections, mqs->node);

@@ -65,13 +65,12 @@ void *init_authqueue(void *arg) {
 			candie = 1;		
 		} else {
 			/* do the auth */
-			printf("woken up %d\n", tcprioq_items(authq->inqueue));
 			tcprioq_get(authq->inqueue, (void *)&aqi);
+			pthread_mutex_unlock(&authq->mutex);
 			nlog(LOG_DEBUG1, LOG_CORE, "Auth %ld -  %s@%s (%s)\n", aqi->conid, aqi->username, aqi->host, aqi->password);
 			aqi->result = NS_FAILURE;
 			tcprioq_add(authq->outqueue, (void *)aqi);
 		}
-		pthread_mutex_unlock(&authq->mutex);
 	}
 	/* finished */
 	destroy_thread();

@@ -44,9 +44,6 @@
 int MQS_Callback(void *mqplib, mqpacket *mqp) {
 	mqsock *mqs = mqp->cbarg;
 	nlog(LOG_DEBUG1, LOG_CORE, "Got Callback for fd %d for %ld", mqp->sock, mqs->status);
-if (!mqs->mqp) {
-printf("something is really wrong\n");
-}
 
 	switch (mqp->inmsg.MSGTYPE) {
 		case PCK_CLNTCAP:
@@ -59,9 +56,6 @@ printf("something is really wrong\n");
 			/* XXX Do Auth */
 			newauthqitm(mqs, mqp->inmsg.data.auth.username, mqp->inmsg.data.auth.password, mqp->inmsg.MID);
 			break;
-			
-
-	
 		default:
 			nlog(LOG_WARNING, LOG_CORE, "Got Unhandled Msgtype on fd %d", mqp->sock);
 			return NS_FAILURE;
@@ -76,14 +70,12 @@ int MQS_Auth_Callback(unsigned long conid, int result, int mid) {
 	mqsock *mqs;
 	mqs = find_con_by_id(conid);
 	if (mqs) {
-if (!mqs->mqp) {
-	printf("Something is wrong\n");
-}
 		if (result == NS_SUCCESS) {
 			MQC_SET_STAT_AUTHOK(mqs);
 			pck_send_ack(mqssetup.mqplib, mqs->mqp, mid);
 		} else { 
 			pck_send_error(mqssetup.mqplib, mqs->mqp, "Invalid Username/Password");
+			MQS_remove_client(mqs);
 		}
 	} else {
 		nlog(LOG_WARNING, LOG_CORE, "Can't Find Conid %ld for Auth", conid);

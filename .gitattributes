@@ -4,7 +4,6 @@ Client/Makefile.in -text
 Client/hash.c -text
 Client/list.c -text
 Client/testclient.c -text
-Client/testserver.c -text
 Include/admincli.h -text
 Include/authqueue.h -text
 Include/callback.h -text

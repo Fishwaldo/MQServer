@@ -48,7 +48,7 @@ unsigned long pck_commit_data (mqp * mqplib, mqpacket * mqpck);
 
 int pck_prepare(mqp *mqplib, mqpacket *mqp, int type) {
 	int rc;
-	if (mqp->outmsg.MID == -1) {
+	if ((mqp) && (mqp->outmsg.MID == -1)) {
 		mqp->outmsg.MID = mqp->nxtoutmid++;
 		mqp->outmsg.VERSION = 1;
 		mqp->outmsg.MSGTYPE = type;

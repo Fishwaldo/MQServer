@@ -27,5 +27,6 @@
 #define CALLBACK_H
 
 int MQS_Callback(void *mqplib, mqpacket *mqp);
+int MQS_Auth_Callback(unsigned long conid, int result, int mid);
 
 #endif

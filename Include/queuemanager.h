@@ -28,6 +28,7 @@
 #include "tcprioq.h"
 
 #define AUTHQSIZE    20
+#define MESSQSIZE    100
 
 
 #define PRIOQ_SLOW   0
@@ -55,9 +56,15 @@ typedef struct authqitm {
 } authqitm;
 
 
+typedef struct messqitm {
+	int prio;
+} messqitm;
+
 
 
 extern int queueman_init();
 extern int newauthqitm(mqsock *mqs, char *username, char *password, int mid);
-
+extern int check_authq();
+extern int check_messq();
+extern int qm_wait(myqueues *qi, int tmout);
 #endif

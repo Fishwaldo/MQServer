@@ -14,7 +14,7 @@
 
 @SET_MAKE@
 
-SOURCES = $(testclient_SOURCES) $(testserver_SOURCES)
+SOURCES = $(testclient_SOURCES)
 
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
@@ -37,7 +37,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = testclient$(EXEEXT) testserver$(EXEEXT)
+bin_PROGRAMS = testclient$(EXEEXT)
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(top_srcdir)/rules.mk
 subdir = Client
@@ -55,10 +55,6 @@ am_testclient_OBJECTS = testclient.$(OBJEXT) list.$(OBJEXT) \
 	hash.$(OBJEXT)
 testclient_OBJECTS = $(am_testclient_OBJECTS)
 testclient_DEPENDENCIES =
-am_testserver_OBJECTS = testserver.$(OBJEXT) list.$(OBJEXT) \
-	hash.$(OBJEXT)
-testserver_OBJECTS = $(am_testserver_OBJECTS)
-testserver_DEPENDENCIES =
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/Include
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -68,8 +64,8 @@ LTCOMPILE = $(LIBTOOL) --mode=compile --tag=CC $(CC) $(DEFS) \
 	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
 	$(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
-SOURCES = $(testclient_SOURCES) $(testserver_SOURCES)
-DIST_SOURCES = $(testclient_SOURCES) $(testserver_SOURCES)
+SOURCES = $(testclient_SOURCES)
+DIST_SOURCES = $(testclient_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -184,8 +180,6 @@ xds_uint64_t = @xds_uint64_t@
 xds_uint8_t = @xds_uint8_t@
 testclient_SOURCES = testclient.c list.c hash.c
 testclient_LDADD = -L$(top_srcdir)/Libs/ -lmqpacket
-testserver_SOURCES = testserver.c list.c hash.c
-testserver_LDADD = -L$(top_srcdir)/Libs/ -lmqpacket
 AM_CFLAGS = -I$(top_srcdir)/Include -I$(top_srcdir)/adns -I$(top_srcdir)/libevent -DNDEBUG
 LINK = @echo "Linking $@"; $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
         $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -254,9 +248,6 @@ clean-binPROGRAMS:
 testclient$(EXEEXT): $(testclient_OBJECTS) $(testclient_DEPENDENCIES) 
 	@rm -f testclient$(EXEEXT)
 	$(LINK) $(testclient_LDFLAGS) $(testclient_OBJECTS) $(testclient_LDADD) $(LIBS)
-testserver$(EXEEXT): $(testserver_OBJECTS) $(testserver_DEPENDENCIES) 
-	@rm -f testserver$(EXEEXT)
-	$(LINK) $(testserver_LDFLAGS) $(testserver_OBJECTS) $(testserver_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -267,7 +258,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/list.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testclient.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testserver.Po@am__quote@
 
 mostlyclean-libtool:
 	-rm -f *.lo

@@ -200,17 +200,17 @@ pck_del_connection (mqp *mqplib, mqpacket * mqpck)
 int
 read_fd (mqp *mqplib, mqpacket *mqp)
 {
-	void *buf[BUFSIZE];
+	char buf[BUFSIZE];
 	int i;
 
 
 	bzero (buf, BUFSIZE);
 	i = read (mqp->sock, buf, BUFSIZE);
-	if (i == 0) {
+	if ((i <= 0) && (i != EAGAIN)) {
 		/* error */
-		close_fd (mqplib, mqp);
 		if (mqplib->logger)
 			mqplib->logger("Failed to Read fd %d: %s", mqp->sock, strerror(errno));
+		close_fd (mqplib, mqp);
 		/* XXX close and clean up */
 		return NS_FAILURE;
 	} else {
