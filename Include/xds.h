@@ -164,5 +164,8 @@ xds_declare_formatting_engine(xml_decode_octetstream);
 xds_declare_formatting_engine(xml_encode_string);
 xds_declare_formatting_engine(xml_decode_string);
 
+int xds_get_usedbuffer (xds_t * xds);
+
+
 #endif /* __XDS_H__ */
 

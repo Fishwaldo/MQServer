@@ -50,7 +50,7 @@ int pck_accept_connection (int fd);
 int listen_on_port (int port);
 
 
-int pck_simple_callback(mqp *mqplib, mqpacket *mqp) {
+int pck_simple_callback(void *mqplib, mqpacket *mqp) {
 
 
 

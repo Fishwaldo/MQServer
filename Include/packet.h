@@ -133,8 +133,8 @@ typedef struct mqpacket {
 } mqpacket;	
 
 typedef void (logfunc)(char *fmt, ...)  __attribute__((format(printf,1,2))); /* 3=format 4=params */
-typedef int (connectauthfunc)(mqp *, mqpacket *);
-typedef int (callbackfunc)(mqp *, mqpacket *);
+typedef int (connectauthfunc)(void *, mqpacket *);
+typedef int (callbackfunc)(void *, mqpacket *);
 
 
 typedef struct myeng {
