@@ -45,7 +45,7 @@ int sqlite_encode_binary(const unsigned char *in, int n, unsigned char *out);
 mqpacket *pck_new_packet(int msgtype, unsigned long flags) {
 	mqpacket *mqpck;
 	
-	mqpck = malloc(sizeof(mqpacket));
+	pck_create_mqpacket(mqpck, ENG_TYPE_XDR, XDS_ENCODE);
 	/* MID is null till we send, this way we can reuse this packet def */
 	mqpck->MID = -1;
 	mqpck->MSGTYPE = msgtype;
@@ -62,32 +62,41 @@ mqpacket *pck_new_packet(int msgtype, unsigned long flags) {
 int pck_set_packet_data(mqpacket *mqpck, void *data, size_t len) {
 	/* if its empty, malloc it */
 	/* size is taken from encode.c sqlite_encode_binary description */
+#if 0
 	mqpck->data = malloc(2 +(257*len)/254);
 	mqpck->dataoffset = sqlite_encode_binary(data, len, mqpck->data);
 	printf("Encode Size %lu Allocated %d\n", mqpck->dataoffset, 2 +(257*len)/254);
+#endif
 	return NS_SUCCESS;
 }
 
 unsigned long pck_commit_data(mqprotocol *mqp, mqpacket *mqpck) {
 	lnode_t *node;
 	uLong crc;
+	int rc;
 	
 	if (list_isfull(mqp->outpack)) {
 		if (mqpconfig.logger) 
 			mqpconfig.logger("OutBuffer is Full.");
 		return NS_FAILURE;
 	}
-	/* do the crc stuff */
-	crc = crc32(0L, Z_NULL, 0);
-	mqpck->crc = crc32(crc, mqpck->data, mqpck->dataoffset);
 	/* we are always at version one atm */
 	mqpck->VERSION = 1;
-	/* it should be null terminated */
-	mqpck->LEN = strlen(mqpck->data);
-
-	/* do the MessageID number */
+	/* increment the mid */
 	mqpck->MID = mqp->nxtoutmid++;
 
+	if (xds_encode(mqpck->xds, "mqpheader", &mqpck) != XDS_OK) {
+		if (mqpconfig.logger) 
+			mqpconfig.logger("OutBuffer is Full.");
+		pck_destroy_mqpacket(mqpck, NULL);
+		return -1;	
+	}		
+	if (xds_setbuffer(mqpck->xds, XDS_GIFT, (void **)&mqpck->data, mqpck->dataoffset) != XDS_OK) {
+		if (mqpconfig.logger) 
+			mqpconfig.logger("OutBuffer is Full.");
+		pck_destroy_mqpacket(mqpck, NULL);
+		return -1;	
+	}
 	
 	node = lnode_create(mqpck);
 	list_append(mqp->outpack, node);

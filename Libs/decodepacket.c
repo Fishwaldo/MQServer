@@ -41,8 +41,6 @@
 #include "xds.h"
 
 static void pck_send_err(mqprotocol *mqp, int err, const char *msg);
-static int pck_check_packet_crc(mqpacket *, mqprotocol *);
-static void pck_destroy_mqpacket(mqpacket *mqpck, mqprotocol *mqp);
 
 void pck_init() {
 }
@@ -72,184 +70,76 @@ mqprotocol *pck_new_conn(void *cbarg, int type) {
 	}					
 	return NULL;
 }
-static int compare_mid(const void *key1, const void *key2) {
-	mqpacket *mqpck = (void *)key1;
-	unsigned long mid = (int)key2;
-	
-	if (mqpck->MID == mid) {
-		return 0;
-	} else {
-		return -1;
-	}
-}
-
-static lnode_t *pck_find_mid_node(unsigned long MID, list_t *queue) {
-	return (list_find(queue, (void *)MID, compare_mid));
-}
-	
-
-	
-		
-void pck_create_mqpacket(mqpacket *mqpck, int type) {
-	int i;
-	mqpck = malloc(sizeof(mqpacket));
-	if (xds_init(&mqpck->xds, XDS_DECODE) != XDS_OK) {
-		if (mqpconfig.logger)
-			mqpconfig.logger("xds init failed: %s", strerrno(errno));
-	}
-	i = 0;
-	switch (type) {
-		case ENG_TYPE_XDR:
-			while (i < NUMENGINES) {
-				if (xds_register(mqpck->xds, dec_xdr_engines[i].myname, dec_xdr_engines[i].ptr, NULL) != XDS_OK) {
-				if (mqpconfig.logger) 
-					mqpconfig.logger("xds_register failed for %s", dec_xdr_engines[i].myname);
-				i++;
-			}
-			break;
-		case ENG_TYPE_XML:
-			while (i < NUMENGINES) {
-				if (xds_register(mqpck->xds, dec_xml_engines[i].myname, dec_xml_engines[i].ptr, NULL) != XDS_OK) {
-				if (mqpconfig.logger) 
-					mqpconfig.logger("xds_register failed for %s", dec_xml_engines[i].myname);
-				i++;
-			}
-			break;
-		default:
-			if (mqpconfig.logger)
-				mqpconfig.logger("invalid pck_create_mqpacket type %d", type);
-			xds_destroy(mqpck->xds);
-			free(mqpck);
-			return;
-	}
-}
 
 /* this is called from the socket recv code. */
 int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen) {
 	mqpacket *mqpck;
 	u_char *outbuf;
 	int gotdatasize;
+	int rc;
 	lnode_t *node;
 
 	if (mqp->wtforinpack == 1) {
 		/* XXX XDR engine for now */
-		pck_create_mqpacket(mqpck, ENG_TYPE_XDR);
+		pck_create_mqpacket(mqpck, ENG_TYPE_XDR, XDS_DECODE);
 		if (mqpck = NULL) {
 			/* XXX drop client ? */
-			return 0;
-		}
-	
-	
-	
-	
-	
-	}
-
-#if 0
-
-	/* first thing we do is decide if the buffer holds the minium packet size required.*/
-	if (buflen < PCK_MIN_PACK_SIZE) {
-		return 0;
-	}
-	/* ok, if we are waiting for a new packet, lets decode the header */
-	if (mqp->wtforinpack == 1) {
-		/* if our buffer is full, signal it. */
-		if (list_isfull(mqp->inpack)) {
-			pck_send_err(mqp, PCK_ERR_BUFFULL, "Inbound Buffer is full");
 			return -1;
 		}
-		mqpck = malloc(sizeof(mqpacket));
-		/* dont add it to the list till we do a proper decode on it. */
-		outbuf = buffer;
-		GETLONG(mqpck->MID, outbuf);
-		GETSHORT(mqpck->MSGTYPE, outbuf);
-		GETSHORT(mqpck->VERSION, outbuf);
-		GETLONG(mqpck->LEN, outbuf);
-		GETLONG(mqpck->flags, outbuf);
-		GETLONG(mqpck->crc, outbuf);
-		/* even though the rest of this is data, it might be additional flags. 
-		 * we encode this data, so its a C "string", ie, no Nulls. so we will only 
-		 * decode it once we get the entire string. */
-		gotdatasize = strlen(outbuf);
-#ifdef DEBUG
-		if (mqpconfig.logger)
-			mqpconfig.logger("Header Size: %d Data Size %lu Real Data Size: %d", (*outbuf - *buffer), mqpck->LEN, gotdatasize);
-#endif
-		if (mqpconfig.logger) 
-			mqpconfig.logger("Got Packet Decode: mid %lu msgtype %d Version %d len %lu flags %lu crc %lu", mqpck->MID, mqpck->MSGTYPE, mqpck->VERSION, mqpck->LEN, mqpck->flags, mqpck->crc);
-
-		mqpck->data = malloc(mqpck->LEN);
-		bzero(mqpck->data, mqpck->LEN);
-		/* seee above explaination about gotdatasize to see why treating this like a string is ok*/
-		strncpy(mqpck->data, outbuf, mqpck->LEN);
-
-		/* ok, seems fine so far, add it to the queue */
-		node = lnode_create(mqpck);
-		list_append(mqp->inpack, node);
-	
-		/* check if we got the entire message yet */
-		if (mqpck->LEN > gotdatasize) {
-			/* we are still waiting for more data */
-			mqp->wtforinpack = 0;
-#ifdef DEBUG		
-			if (mqpconfig.logger)
-				mqpconfig.logger("Wating for More Data (%lu) for MessageID %lu", (mqpck->LEN - gotdatasize), mqpck->MID);
-#endif	
-		} else if (mqpck->LEN == gotdatasize) {
-#ifdef DEBUG		
-			if (mqpconfig.logger)
-				mqpconfig.logger("Got All Our Data. Processing MessageID %lu", mqpck->MID);
-#endif	
-			if (pck_check_packet_crc(mqpck, mqp) == NS_SUCCESS) {
-				/* XXX ok, process this packet */
-				/* finished. ok, process next pack */
-			}
-			mqp->wtforinpack = 1;
-		} else {
-			/* XXX TODO Drop Client?*/
+		if (xds_setbuffer(mqpck->xds, XDS_LOAN, buffer, buflen) != XDS_OK) {
+			if (mqpconfig.logger) 
+				mqpconfig.logger("XDS Decode of Header Failed");
+			pck_destroy_mqpacket(mqpck, NULL);
+			/* XXX drop client ? */
+			return -1;
 		}			
-
-		return PCK_MIN_PACK_SIZE + gotdatasize;
-	} else {
-		/* additional data is encoded as a string */
-		node = list_last(mqp->inpack);
-		/* ehhh, inpack node is empty. Something is screwy */
-		if (node == NULL) {
-			if (mqpconfig.logger)
-				mqpconfig.logger("Got lastnode is empty");
+		/* lets use a switch here to handle it intelegently */
+		rc = xds_decode(mqpck->xds, "mqpheader", &mqpck);
+		switch (rc) {
+			case XDS_OK:
+				break;
+			case XDS_ERR_UNDERFLOW:
+				if (mqpconfig.logger) 
+					mqpconfig.logger("XDS Decode of Header Failed. Buffer Underflow");
+				pck_destroy_mqpacket(mqpck, NULL);
+				/* don't consume any buffer */
+				return 0; 
+			default:
+				if (mqpconfig.logger) 
+					mqpconfig.logger("XDS Decode of Header Failed: %d", rc);
+				pck_destroy_mqpacket(mqpck, NULL);
+				/* drop client */
+				return -1; 
+		}		
+		if (mqpconfig.logger) 
+			mqpconfig.logger("Got Packet Decode: mid %lu msgtype %d Version %d flags %lu ", mqpck->MID, mqpck->MSGTYPE, mqpck->VERSION, mqpck->flags);
+		
+		/* check the version number */
+		if (mqpck->VERSION != 1) {
+			if (mqpconfig.logger) 
+				mqpconfig.logger("Invalid Protocol Version recieved");
+			pck_destroy_mqpacket(mqpck, NULL);
+			/* XXX drop client ? */
 			return -1;
 		}
-		mqpck = lnode_get(node);
-
-		/* this is additional data, and it *should* be terminted by a null, so strlen should work */
-		gotdatasize = strlen(buffer);
-		if ((mqpck->LEN - strlen(mqpck->data)) == gotdatasize) {
-			/* this is the final pack, tack it on the end, and then pass it off for processing */
-			strncat(mqpck->data, buffer, mqpck->LEN);
-			if (pck_check_packet_crc(mqpck, mqp) == NS_SUCCESS) {
-				/* XXX process it. */
-			}
-			mqp->wtforinpack = 1;
-			return gotdatasize;
-		} else if ((mqpck->LEN - strlen(mqpck->data) - gotdatasize) < 0) {
-			/* we got more data than we expected. Eeeek */
-#ifdef DEBUG
-			if (mqpconfig.logger)
-				mqpconfig.logger("Got More data in buffer overflow than we expected. Throwing away MessageID %lu", mqpck->MID);
-#endif			
-	
-			/* XXX TODO Drop Client? */
-		} else {
-			/* we must be waiting for more data still. Tack it on, and update. */
-			strncat(mqpck->data, buffer, mqpck->LEN);
-#ifdef DEBUG
-			if (mqpconfig.logger)
-				mqpconfig.logger("still waiting for more data in buffer overflowfor MessageID %lu", mqpck->MID);
-#endif			
-			
+		/* ok, lets handle this message based on the message type */	
+		switch (mqpck->MSGTYPE) {
+		
+		
+			default:
+				if (mqpconfig.logger) 
+					mqpconfig.logger("Invalid MsgType Recieved");
+				pck_destroy_mqpacket(mqpck, NULL);
+				/* XXX drop client */
+				return -1;
 		}
+		/* finished processing the message. grab what buffer we consumed and return */
+									
+		rc = xds_get_usedbuffer(mqpck->xds);	
+		pck_destroy_mqpacket(mqpck, NULL);
+		return rc;
 	}
-#endif
+
 	/* nothing done on the buffer, so return 0 */
 	return 0;
 }
@@ -258,40 +148,5 @@ void pck_send_err(mqprotocol *mqp, int err, const char *msg) {
 
 	if (mqpconfig.logger) 
 		mqpconfig.logger("pck_send_error: %s", msg);
-
-}
-
-int pck_check_packet_crc(mqpacket *mqpck, mqprotocol *mqp) {
-	uLong decodecrc;
-	
-	/* seed it */
-	decodecrc = crc32(0L, Z_NULL, 0);
-	
-	/* now do it */
-	decodecrc = crc32(decodecrc, mqpck->data, mqpck->LEN);
-	if (decodecrc != mqpck->crc) {
-		/* CRC Failed */
-		pck_send_err(mqp, PCK_ERR_CRC, "Crc Failed for MessageID");
-		pck_destroy_mqpacket(mqpck, mqp);
-		return NS_FAILURE;
-	}
-	return NS_SUCCESS;
-}
-
-
-void pck_destroy_mqpacket(mqpacket *mqpck, mqprotocol *mqp) {
-	lnode_t *node;
-	
-	node = pck_find_mid_node(mqpck->MID, mqp->inpack);
-	if (node) {
-#ifdef DEBUG
-			if (mqpconfig.logger)
-				mqpconfig.logger("Destroy Packet MessageID %lu", mqpck->MID);
-#endif			
-		list_delete(mqp->inpack, node);
-		lnode_destroy(node);
-		free(mqpck->data);
-		free(mqpck);
-	} 
 
 }

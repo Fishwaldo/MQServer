@@ -506,3 +506,6 @@ int xds_vdecode(xds_t *xds, const char *fmt_arg, va_list args)
     return rc;
 }
 
+int xds_get_usedbuffer(xds_t *xds) {
+	return xds->buffer_len;
+}

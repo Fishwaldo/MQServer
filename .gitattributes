@@ -14,13 +14,16 @@ Include/packet.h -text
 Include/sock.h -text
 Include/version.h -text
 Include/xds.h.in -text
+Include/xds_engine_xdr_mqs.h -text
 Include/xds_p.h -text
 Libs/Makefile.in -text
 Libs/decodepacket.c -text
 Libs/encode.c -text
 Libs/encodepacket.c -text
+Libs/packet.c -text
 Libs/xds.c -text
 Libs/xds_engine_xdr.c -text
+Libs/xds_engine_xdr_mqs.c -text
 Libs/xds_engine_xml.c -text
 Libs/xds_version.c -text
 /Makefile.in -text

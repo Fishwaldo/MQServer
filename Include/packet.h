@@ -28,6 +28,7 @@
 
 #include "defines.h"
 #include "xds.h"
+#include "xds_engine_xdr_mqs.h"
 #include "event.h"
 #include "list.h"
 
@@ -70,9 +71,7 @@ typedef struct mqpacket {
 	unsigned long MID;
 	int MSGTYPE;
 	int VERSION;
-	unsigned long LEN;
 	unsigned long flags;
-	unsigned long crc;
 	void *data;
 	unsigned long dataoffset;
 	xds_t *xds;
@@ -106,7 +105,7 @@ typedef struct mqpacket {
 
 
 /* encoding engine structs */
-#define NUMENGINES 8	
+#define NUMENGINES 9	
 
 #define ENG_TYPE_XDR 1
 #define ENG_TYPE_XML 2
@@ -126,6 +125,7 @@ myengines enc_xdr_engines[NUMENGINES] = {
 	{ xdr_encode_double, "double" },
 	{ xdr_encode_octetstream, "octet" },
 	{ xdr_encode_string, "string" },
+	{ encode_mqs_header, "mqpheader" },
 };
 
 myengines dec_xdr_engines[NUMENGINES] = {
@@ -137,6 +137,7 @@ myengines dec_xdr_engines[NUMENGINES] = {
 	{ xdr_decode_double, "double" },
 	{ xdr_decode_octetstream, "octet" },
 	{ xdr_decode_string, "string" },
+	{ decode_mqs_header, "mqpheader" },
 };
 
 myengines enc_xml_engines[NUMENGINES] = {
@@ -172,6 +173,11 @@ void pck_init();
 void pck_set_logger(logfunc *logger);
 mqprotocol *pck_new_conn(void *cbarg, int type);
 int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen);
+
+
+void pck_destroy_mqpacket(mqpacket *mqpck, mqprotocol *mqp);
+void pck_create_mqpacket(mqpacket *mqpck, int type, xds_mode_t direction);
+lnode_t *pck_find_mid_node(unsigned long MID, list_t *queue);
 
 /* these are error defines */
 #define PCK_ERR_BUFFULL		1
