@@ -446,12 +446,6 @@ write_fd (int fd, mqprotocol * mqp)
 		}
 	}
 	/* ok, first we figure out what stage we are at */
-	if (MQP_IS_CLIENT(mqp) && !MQP_IS_SETUP(mqp)) {
-		if (mqpconfig.logger)
-			mqpconfig.logger ("send SRVCAP");
-		pck_send_srvcap(mqp);
-		mqp->pollopts |= POLLIN;
-	}
 
 	if (mqp->outbufferlen > 0) {
 		i = write (mqp->sock, mqp->outbuffer, mqp->outbufferlen);
@@ -658,7 +652,9 @@ pck_accept_connection (int fd)
 	} else {
 		MQP_SET_AUTHED(mqp);
 	}
-	mqp->pollopts |= POLLOUT;
+	/* send out caps and wait for reply for client caps */
+	pck_send_srvcap(mqp);
+	mqp->pollopts |= POLLIN;
 	return l;
 }
 

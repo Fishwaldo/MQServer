@@ -115,6 +115,7 @@ pck_commit_data (mqprotocol * mqp, mqpacket * mqpck)
 
 	node = lnode_create (mqpck);
 	list_append (mqp->outpack, node);
+	write_fd(mqp->sock, mqp);
 
 	return mqpck->MID;
 }
