@@ -48,23 +48,32 @@ sc sockconfig;
 
 int pck_accept_connection (int fd);
 int listen_on_port (int port);
+void pck_logger(char *fmt, ...);
 
 
 int pck_simple_callback(void *mqplib, mqpacket *mqp) {
 
+	switch (mqp->inmsg.MSGTYPE) {
+		case PCK_SRVCAP:
+			pck_logger("Got ServerCap");
+			pck_send_clntcap(mqplib, mqp);
+			break;
+		case PCK_CLNTCAP:
+			pck_logger("Got clntcap");
+			break;
+		default:
+			pck_logger("Uknown");
+	}			
 
 
 
-
-
-
-
+	return NS_SUCCESS;
 }
 
 void pck_logger(char *fmt,...) {
 	va_list ap;
 	char log_buf[BUFSIZE];
-	if (sockconfig.debug >= 1) {
+	if (sockconfig.debug == 1) {
 		va_start(ap, fmt);
 		vsnprintf(log_buf, BUFSIZE, fmt, ap);
 		va_end(ap);
@@ -77,7 +86,7 @@ int init_socket() {
 	sockconfig.listenfd = -1;
 	sockconfig.listport = -1;
 	sockconfig.mqplib = init_mqlib();
-	sockconfig.debug = 0;
+	sockconfig.debug = 1;
 	pck_set_logger(sockconfig.mqplib, pck_logger);		
 	pck_set_callback(sockconfig.mqplib, pck_simple_callback);
 	return NS_SUCCESS;
@@ -112,7 +121,7 @@ pck_before_poll (struct pollfd ufds[MAXCONNECTIONS])
 		}
 		node = list_next (connections, node);
 		if (count == (MAXCONNECTIONS -1)) {
-			printf("count %d\n", count);
+			pck_logger("count %d", count);
 			break;
 		}
 	}
@@ -155,18 +164,15 @@ pck_after_poll (const struct pollfd *ufds, int nfds)
 	lnode_t *node;
 	mqpacket *mqp;
 	
-	printf("ready: %d\n", nfds);
 	if (nfds == 0) {
 		return NS_SUCCESS;
 	}
 	for (i = 0; i <= nfds; i++) {
-		printf("checking fd %d %d\n", ufds[i].fd, ufds[i].revents);
 		if (sockconfig.listenfd == ufds[i].fd) {
 			pck_accept_connection (ufds[i].fd);
 			continue;
 		}
 		if (ufds[i].revents & POLLHUP || ufds[i].revents & POLLERR) {
-			printf("close %d\n", ufds[i].fd);
 			node = pck_find_fd_node(ufds[i].fd, connections);
 			if (node) {
 				mqp = lnode_get(node);
@@ -174,27 +180,27 @@ pck_after_poll (const struct pollfd *ufds, int nfds)
 				list_delete(connections, node);
 				lnode_destroy(node);
 			}
+			return NS_FAILURE;
 		}
 		if (ufds[i].revents & POLLIN) {
-			printf("readfd %d\n", ufds[i].fd);
 			node = pck_find_fd_node(ufds[i].fd, connections);
 			if (node) {
 				mqp = lnode_get(node);
 				if (read_fd (sockconfig.mqplib, mqp) != NS_SUCCESS) {
-					printf("dropping connection after read\n");
 					list_delete(connections, node);
 					lnode_destroy(node);
+					return NS_FAILURE;
 				}			
 			}
 		}
 		if (ufds[i].revents & POLLOUT) {
-			printf("writefd %d\n", ufds[i].fd);
 			node = pck_find_fd_node(ufds[i].fd, connections);
 			if (node) {
 				mqp = lnode_get(node);
 				if (write_fd (sockconfig.mqplib, mqp) != NS_SUCCESS) {
 					list_delete(connections, node);
 					lnode_destroy(node);
+					return NS_FAILURE;
 				}
 			}
 		}
@@ -222,7 +228,7 @@ pck_process ()
 	j = poll (ufds, i, 100);
 
 	if (j < 0) {
-		printf("poll returned %d: %s\n", j, strerror(j));
+		pck_logger("poll returned %d: %s", j, strerror(j));
 		return NS_FAILURE;
 	}
 	return pck_after_poll (ufds, j);
@@ -321,7 +327,7 @@ pck_make_connection (char *hostname, char *username, char *password, long flags,
 	if (inet_aton(hostname, &ipad) == 0) {
 	
 		if ((hp = gethostbyname(hostname)) == NULL) {
-			printf("gethostbyname failed\n");
+			pck_logger("gethostbyname failed");
 			return NS_FAILURE;
 		}
 		sa.sin_family = AF_INET;
@@ -362,7 +368,7 @@ pck_make_connection (char *hostname, char *username, char *password, long flags,
 
 
 	mqp->pollopts |= POLLIN;
-	printf("OutGoing Connection on fd %d\n", s);
+	pck_logger("OutGoing Connection on fd %d", s);
 	return s;
 }
 

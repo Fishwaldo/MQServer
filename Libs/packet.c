@@ -188,13 +188,11 @@ int
 read_fd (mqp *mqplib, mqpacket *mqp)
 {
 	void *buf[BUFSIZE];
-	size_t i;
+	int i;
 
 
-printf("read %d\n", mqp->sock);
 	bzero (buf, BUFSIZE);
 	i = read (mqp->sock, buf, BUFSIZE);
-printf("read %d bytes from %d\n", i,mqp->sock);
 	if (i < 1) {
 		/* error */
 		close_fd (mqplib, mqp);
@@ -210,7 +208,7 @@ printf("read %d bytes from %d\n", i,mqp->sock);
 		i = pck_parse_packet (mqplib, mqp, mqp->buffer, mqp->offset);
 		if (i > 0) {
 			buffer_del (mqp, i);
-		} else if (i < 0) {
+		} else if (i == NS_FAILURE) {
 			close_fd (mqplib, mqp);
 			return NS_FAILURE;
 		}
@@ -224,6 +222,9 @@ printf("read %d bytes from %d\n", i,mqp->sock);
 int
 close_fd (mqp *mqplib, mqpacket * mqp)
 {
+	if (mqplib->logger) {
+		mqplib->logger ("Closing %d fd", mqp->sock);
+	}
 	pck_del_connection (mqplib, mqp);
 	close (mqp->sock);
 	return NS_SUCCESS;
@@ -276,7 +277,6 @@ write_fd (mqp *mqplib, mqpacket * mqp)
 	
 	if (mqp->outbufferlen > 0) {
 		i = write (mqp->sock, mqp->outbuffer, mqp->outbufferlen);
-		printf("write %d - %d\n", mqp->sock, i);
 		if (i == mqp->outbufferlen) {
 			free (mqp->outbuffer);
 			mqp->outbufferlen = mqp->outoffset = 0;
@@ -306,7 +306,7 @@ write_fd (mqp *mqplib, mqpacket * mqp)
 void print_decode(void *buf, size_t len) {
 	int i;
 	char *buf2 = buf;
-	printf("%d\n", len);
+	printf("Decode: ");
 	for (i=0; i < len; i++) {
 		printf("%x ", buf2[i]);
 	}

@@ -37,12 +37,14 @@
 void pck_logger(char *fmt,...);
 
 int main() {
+	int rc = 1;
 	init_socket();
 	debug_socket(1);
 
 	pck_make_connection("localhost", "fish", "haha", 0, NULL);
-	while (1) {
-		pck_process();
+	while (rc == 1) {
+		rc = pck_process();
+		printf("%d\n", rc);
 		sleep(1);
 	}
 }

@@ -29,7 +29,6 @@
 */
 
 #include <string.h>
-
 #include "xds.h"
 
 /*

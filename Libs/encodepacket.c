@@ -39,6 +39,8 @@
 #define SRVCAP1 2
 #define SRVCAP2 3
 
+#define CLNTCAP1 2
+#define CLNTCAP2 3
 
 unsigned long pck_commit_data (mqp * mqplib, mqpacket * mqpck);
 void print_decode(void *buf, size_t len);
@@ -113,6 +115,29 @@ unsigned long pck_send_srvcap(mqp *mqplib, mqpacket *mqp) {
 	return (pck_commit_data(mqplib, mqp));
 }
 
+unsigned long pck_send_clntcap(mqp *mqplib, mqpacket *mqp) {
+	int rc;
+	char clntcap[BUFSIZE];
+	
+	
+	if (pck_prepare(mqplib, mqp, PCK_CLNTCAP) != NS_SUCCESS) {
+		return NS_FAILURE;
+	}
+	
+	snprintf(clntcap, BUFSIZE, "STD");
+#ifdef DEBUG	
+	strncat(clntcap, ":DBG", BUFSIZE);
+#endif	
+	rc = xds_encode (mqp->xdsout, PCK_CLNTCAP_FMT, CLNTCAP1, CLNTCAP2, clntcap);
+
+	if (rc != XDS_OK) {
+		if (mqplib->logger)
+			mqplib->logger ("xds encode clntcap failed %d.", rc);
+		return NS_FAILURE;
+	}
+	
+	return (pck_commit_data(mqplib, mqp));
+}
 
 unsigned long pck_send_error(mqp *mqplib, mqpacket *mqp, char *fmt, ...) {
 	int rc;

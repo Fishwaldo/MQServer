@@ -70,7 +70,7 @@
 #define PCK_ACK_FMT		"int32"
 #define PCK_ERROR_FMT		"string"
 #define PCK_SRVCAP_FMT		"int32 int32 string"
-
+#define PCK_CLNTCAP_FMT		"int32 int32 string"
 
 
 /* packet flags, not message flags */
@@ -89,16 +89,14 @@ struct mq_data_srvcap {
 	char *capstr;
 } mq_data_srvcap;
 
-
-
 struct message {
 	int MID;
 	int MSGTYPE;
 	int VERSION;
 	int flags;
 	union {
-		struct mq_data_stream *stream;
-		struct mq_data_srvcap *srvcap;
+		struct mq_data_stream stream;
+		struct mq_data_srvcap srvcap;
 		char *string;
 		int num;
 	} data;

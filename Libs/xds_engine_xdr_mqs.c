@@ -10,7 +10,6 @@ encode_mqs_header (xds_t * xds, void *engine_context, void *buffer, size_t buffe
 {
 	struct mqpacket *mqp;
 	mqp = va_arg (*args, struct mqpacket *);
-printf("encode %d\n", mqp->outmsg.MID);
 	return xds_encode (xds, "int32 int32 int32 int32", mqp->outmsg.MID, mqp->outmsg.MSGTYPE, mqp->outmsg.VERSION, mqp->outmsg.flags);
 }
 

@@ -50,6 +50,7 @@ typedef struct mqsock {
 	long status;
 	long type;
 	struct event ev;
+	lnode_t *node;
 	union {
 		int fd;
 	} data;	

@@ -57,19 +57,29 @@ void MQS_Logger(char *fmt,...) {
 	nlog(LOG_DEBUG1, LOG_CORE, "%s", log_buf);
 }
 
+void MQS_remove_client(mqsock *mqs) {
+	nlog(LOG_DEBUG1, LOG_CORE, "Dropping client %d", mqs->data.fd);
+	event_del(&mqs->ev);
+	list_delete(mqssetup.connections, mqs->node);
+	lnode_destroy(mqs->node);
+	free(mqs);
+}	
 
 
 void MQS_client_activity(int fd, short eventtype, void *arg) {
 	mqsock *mqs = arg;
-
+	int rc = -1;
+	
 	SET_SEGV_LOCATION();
-	printf("%x %x %x\n", EV_READ, EV_WRITE, eventtype);
 	if (eventtype == EV_READ) {
-		read_fd(mqssetup.mqplib, mqs->mqp);
-
+		rc = read_fd(mqssetup.mqplib, mqs->mqp);
 	} else if (eventtype == EV_WRITE) {
-		write_fd(mqssetup.mqplib, mqs->mqp);
+		rc = write_fd(mqssetup.mqplib, mqs->mqp);
 	}
+	if (rc == NS_FAILURE) {
+		MQS_remove_client(mqs);			
+	}
+
 }
 
 void spawn_admin_thread(mqsock *mqs) {
@@ -120,16 +130,23 @@ void MQS_listen_accept(int fd, short eventtype, void *arg) {
 	if (MQC_IS_TYPE_CLIENT_XDR(newmqs)) {
 		newmqs->mqp = pck_new_connection(mqssetup.mqplib, newmqs->data.fd, ENG_TYPE_XDR, PCK_IS_CLIENT);
 		event_set(&newmqs->ev, l, EV_READ|EV_PERSIST, MQS_client_activity, newmqs);
+		event_add(&newmqs->ev, NULL);	
+		newmqs->node = lnode_create(newmqs);
+  		list_append(mqssetup.connections, newmqs->node);
 	} else if (MQC_IS_TYPE_CLIENT_XML(newmqs)) {
 		newmqs->mqp = pck_new_connection(mqssetup.mqplib, newmqs->data.fd, ENG_TYPE_XML, PCK_IS_CLIENT);
 		event_set(&newmqs->ev, l, EV_READ|EV_PERSIST, MQS_client_activity, newmqs);
+		event_add(&newmqs->ev, NULL);	
+		newmqs->node = lnode_create(newmqs);
+  		list_append(mqssetup.connections, newmqs->node);
 	} else if (MQC_IS_TYPE_ADMIN(newmqs)) {
-		/* XXX */
+		/* XXX Admin thread needs to signal when finished */
 		spawn_admin_thread(newmqs);
+		newmqs->node = lnode_create(newmqs);
+  		list_append(mqssetup.connections, newmqs->node);
 	} else {
 		printf("this is fubar\n");
 	}
-	event_add(&newmqs->ev, NULL);	
 }
 
 
@@ -198,7 +215,6 @@ MQS_listen_on_port(int port, long type)
   int      adrlen;
   int      flags;
   mqsock   *mqs;
-  lnode_t  *node;
   int 	   on = 1;
 
   SET_SEGV_LOCATION();
@@ -260,8 +276,8 @@ MQS_listen_on_port(int port, long type)
   event_add(&mqs->ev, NULL);	
   nlog(LOG_DEBUG1, LOG_CORE, "Listening on %d (%d) for %x connections", port, srvfd, type);
 
-  node = lnode_create(mqs);
-  list_append(mqssetup.connections, node);
+  mqs->node = lnode_create(mqs);
+  list_append(mqssetup.connections, mqs->node);
   return NS_SUCCESS;
 }
 
