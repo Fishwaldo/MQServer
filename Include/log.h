@@ -57,11 +57,19 @@
 /* Scope of Logging Defines: */
 
 #define LOG_CORE	0
-#define LOG_MOD		1
+#define LOG_AUTHQ	1
+#define LOG_MESSQ	2
+#define LOG_PROT	3
 
 /* buffer size for new customisable filenames 
    20 should be more than sufficient */
 #define MAX_LOGFILENAME	20
+
+
+
+/* XXX make this go away */
+#define fini_logs close_logs
+
 
 /* this is for the neostats assert replacement. */
 /* Version 2.4 and later of GCC define a magical variable _PRETTY_FUNCTION__'

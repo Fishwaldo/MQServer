@@ -87,7 +87,7 @@ int MQS_Auth_Callback(authqitm *aqi) {
 			MQS_remove_client(mqs);
 		}
 	} else {
-		nlog(LOG_WARNING, LOG_CORE, "Can't Find Conid %ld for Auth", aqi->conid);
+		nlog(LOG_WARNING, LOG_AUTHQ, "Can't Find Conid %ld for Auth", aqi->conid);
 	}
 	return NS_SUCCESS;
 }
@@ -107,7 +107,7 @@ int MQS_Mesq_Callback(messqitm *mqi) {
 				break;
 		}
 	} else {
-		nlog(LOG_WARNING, LOG_CORE, "Can't Find Client ID %ld for Mesq Callback Type %d", mqi->conid, mqi->type);
+		nlog(LOG_WARNING, LOG_MESSQ, "Can't Find Client ID %ld for Mesq Callback Type %d", mqi->conid, mqi->type);
 		/* cleanup anything that needs to be cleaned up */
 		if (mqi->type == MQI_SEND_MES) free(mqi->data.sndmsg.msg);
 	}

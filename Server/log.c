@@ -54,17 +54,21 @@ const char *loglevels[10] = {
 	"INSANE"
 };
 
+const char *logscope[] = {
+	"CORE",
+	"AUTH",
+	"QUEUE",
+	"PROTOCOL"
+};
+
 static char log_buf[BUFSIZE];
 static char log_fmttime[TIMEBUFSIZE];
 
-struct logs_ {
+struct mqlog {
 	FILE *logfile;
-	char name[BUFSIZE];
-	char logname[MAXPATH];
-	unsigned int flush;
-} logs_;
-
-hash_t *logs;
+	char filename[MAXPATH];
+} mqlog;
+	
 
 /** @brief initialize the logging functions 
  */
@@ -75,87 +79,31 @@ init_logs ()
 
 	MYLOCK_INIT(logmutex);
 	MYLOCK(&logmutex);
+	snprintf (mqlog.filename, MAXPATH, "logs/%s", CoreLogFileName);
 
-	logs = hash_create (-1, 0, 0);
-	if (!logs) {
-		printf ("ERROR: Can't initialize log subsystem. Exiting!");
-		MYUNLOCK(&logmutex);
-		return NS_FAILURE;
-	}
 	printf("Logging Subsystem Started\n");
 	MYUNLOCK(&logmutex);
 	return NS_SUCCESS;
 }
+
 
 /** @brief Occasionally flush log files out 
  */
 void
 close_logs ()
 {
-	hscan_t hs;
-	hnode_t *hn;
-	struct logs_ *logentry;
-
 	SET_SEGV_LOCATION();
 
 	MYLOCK(&logmutex);
-	hash_scan_begin (&hs, logs);
-	while ((hn = hash_scan_next (&hs)) != NULL) {
-		logentry = hnode_get (hn);
-		logentry->flush = 0;
 #ifdef DEBUG
-		printf ("Closing Logfile %s (%s)\n", logentry->name, (char *) hnode_getkey (hn));
+		printf ("Closing Logfile %s\n", mqlog.filename);
 #endif
-		if(logentry->logfile)
+		if(mqlog.logfile)
 		{
-			fflush (logentry->logfile);
-			fclose (logentry->logfile);
-			logentry->logfile = NULL;
+			fflush (mqlog.logfile);
+			fclose (mqlog.logfile);
 		}
-		hash_scan_delete (logs, hn);
-		hnode_destroy (hn);
-		free (logentry);
-	}
 	MYUNLOCK(&logmutex);
-}
-
-void 
-fini_logs() {
-	hscan_t hs;
-	hnode_t *hn;
-	struct logs_ *logentry;
-
-	SET_SEGV_LOCATION();
-
-	MYLOCK(&logmutex);
-	hash_scan_begin (&hs, logs);
-	while ((hn = hash_scan_next (&hs)) != NULL) {
-		logentry = hnode_get (hn);
-		logentry->flush = 0;
-#ifdef DEBUG
-		printf ("Closing Logfile %s (%s)\n", logentry->name, (char *) hnode_getkey (hn));
-#endif
-		if(logentry->logfile)
-		{
-			fflush (logentry->logfile);
-			fclose (logentry->logfile);
-			logentry->logfile = NULL;
-		}
-		hash_scan_delete (logs, hn);
-		hnode_destroy (hn);
-		free (logentry);
-	}
-	/* for some reason, the logs are not getting flushed correctly */
-	hash_destroy(logs);
-	MYUNLOCK(&logmutex);
-}
-
-void make_log_filename(char* modname, char *logname)
-{
-	time_t t = time(NULL);
-	strftime (log_fmttime, TIMEBUFSIZE, LogFileNameFormat, localtime (&t));
-//	strlwr(modname);
-	snprintf (logname, MAXPATH, "logs/%s%s.log", modname, log_fmttime);
 }
 
 /** @Configurable logging function
@@ -164,51 +112,14 @@ void
 nlog (int level, int scope, char *fmt, ...)
 {
 	va_list ap;
-	hnode_t *hn;
-	struct logs_ *logentry;
 	
 	MYLOCK(&logmutex);
 	
 	if (level <= config.debug) {
-		/* if scope is > 0, then log to a diff file */
-		if (scope > 0) {
-			if (segv_inmodule[0] != 0) {
-				hn = hash_lookup (logs, segv_inmodule);
-			} else {
-#if 0
-				nlog (LOG_ERROR, LOG_CORE, "Warning, nlog called with LOG_MOD, but segv_inmodule is blank! Logging to Core");
-#endif
-				hn = hash_lookup (logs, CoreLogFileName);
-			}
-		} else {
-			hn = hash_lookup (logs, CoreLogFileName);
-		}
-		if (hn) {
-			/* we found our log entry */
-			logentry = hnode_get (hn);
-			if(!logentry->logfile)
-				logentry->logfile = fopen (logentry->logname, "a");
-		} else {
-			/* log file not found */
-			if (segv_inmodule[0] == 0 && (scope > 0)) {
+		if(!mqlog.logfile)
+			mqlog.logfile = fopen (mqlog.filename, "a");
 #ifdef DEBUG
-				printf ("segv_inmodule is blank, but scope is for Modules!\n");
-#endif
-				/* bad, but hey ! */
-				scope = 0;
-			}
-			logentry = malloc (sizeof (struct logs_));
-			strncpy (logentry->name, scope > 0 ? segv_inmodule : CoreLogFileName, BUFSIZE);
-			make_log_filename(logentry->name, logentry->logname);
-			logentry->logfile = fopen (logentry->logname, "a");
-			logentry->flush = 0;
-			hn = hnode_create (logentry);
-			hash_insert (logs, hn, logentry->name);
-
-		}
-
-#ifdef DEBUG
-		if (!logentry->logfile) {
+		if (!mqlog.logfile) {
 			printf ("LOG ERROR: %s\n", strerror (errno));
 			MYUNLOCK(&logmutex);
 			do_exit (NS_EXIT_NORMAL, NULL);
@@ -222,12 +133,11 @@ nlog (int level, int scope, char *fmt, ...)
 		vsnprintf (log_buf, BUFSIZE, fmt, ap);
 		va_end (ap);
 
-		fprintf (logentry->logfile, "(%s) %s %s - %s\n", log_fmttime, loglevels[level - 1], scope > 0 ? segv_inmodule : "CORE", log_buf);
-		logentry->flush = 1;
+		fprintf (mqlog.logfile, "(%s) %s %s - %s\n", log_fmttime, loglevels[level - 1], logscope[scope], log_buf);
 #ifndef DEBUG
 		if (config.foreground)
 #endif
-			printf ("%s %s - %s\n", loglevels[level - 1], scope > 0 ? segv_inmodule : "CORE", log_buf);
+			printf ("%s %s - %s\n", loglevels[level - 1], logscope[scope], log_buf);
 	}
 	MYUNLOCK(&logmutex);
 }
@@ -237,30 +147,10 @@ nlog (int level, int scope, char *fmt, ...)
 void
 reset_logs ()
 {
-	hscan_t hs;
-	hnode_t *hn;
-	struct logs_ *logentry;
 
 	SET_SEGV_LOCATION();
 	MYLOCK(&logmutex);
-	hash_scan_begin (&hs, logs);
-	while ((hn = hash_scan_next (&hs)) != NULL) {
-		logentry = hnode_get (hn);
-		/* If file handle is vald we must have used the log */
-		if(logentry->logfile) {
-			if (logentry->flush > 0) {
-				fflush (logentry->logfile);
-			}
-			fclose (logentry->logfile);		
-			logentry->logfile = NULL;
-		}
-		logentry->flush = 0;
-#ifdef DEBUG
-		printf ("Closing Logfile %s (%s)\n", logentry->name, (char *) hnode_getkey (hn));
-#endif
-		/* make new file name but do not open until needed to avoid 0 length files*/
-		make_log_filename(logentry->name, logentry->logname);
-	}
+	/* XXX TODO */
 	MYUNLOCK(&logmutex);
 }
 

@@ -67,7 +67,7 @@ void *init_authqueue(void *arg) {
 			tcprioq_get(authq->inqueue, (void *)&aqi);
 			pthread_mutex_unlock(&authq->mutex);
 			/* XXX Do auth */
-			nlog(LOG_DEBUG1, LOG_CORE, "Auth %ld -  %s@%s (%s)\n", aqi->conid, aqi->username, aqi->host, aqi->password);
+			nlog(LOG_DEBUG1, LOG_AUTHQ, "Auth %ld -  %s@%s (%s)\n", aqi->conid, aqi->username, aqi->host, aqi->password);
 			aqi->result = NS_SUCCESS;
 
 			/* put result in outqueu */

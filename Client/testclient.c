@@ -36,6 +36,7 @@
 
 void pck_logger(char *fmt,...);
 int conid;
+int cansend;
 
 typedef struct testdata {
 	char *name;
@@ -83,11 +84,12 @@ int gotaction(int type, void *cbarg) {
 	switch (type) {
 		case PCK_SMP_LOGINOK:
 			pck_simple_joinqueue(conid, "testqueue", 0, "*");
-			pck_simple_send_message_struct(conid, &testdataentry, (sizeof(testdataentry)/sizeof(structentry)), tmp, "testqueue", "Mytopic");
 			break;
 		case PCK_SMP_QUEUEINFO:
 			qi = pck_get_queueinfo(conid);
 			printf("queue info: %s %d %s\n", qi->queue, qi->flags, qi->filter);
+			cansend = 1;
+			pck_simple_send_message_struct(conid, &testdataentry, (sizeof(testdataentry)/sizeof(structentry)), tmp, "testqueue", "Mytopic");
 			break;
 		case PCK_SMP_MSGFROMQUEUE:
 			sd = pck_get_msgfromqueue(conid);
@@ -115,10 +117,15 @@ int main() {
 	
 	printf("total size %d\n", (sizeof(testdataentry)/sizeof(structentry)));
 	
-	
+	cansend = 0;
 	conid = pck_make_connection("snoopy", "fish", "haha", 0, NULL, gotaction);
 	while (rc == 1) {
 		rc = pck_process();
+		if (cansend == 1) {
+			tmp->size++;
+			pck_simple_send_message_struct(conid, &testdataentry, (sizeof(testdataentry)/sizeof(structentry)), tmp, "testqueue", "Mytopic");
+		}
+		sleep(1);
 	}
 }
 

@@ -55,7 +55,7 @@ void MQS_Logger(char *fmt,...) {
         va_start(ap, fmt);
         vsnprintf(log_buf, BUFSIZE, fmt, ap);
         va_end(ap);
-	nlog(LOG_DEBUG1, LOG_CORE, "%s", log_buf);
+	nlog(LOG_DEBUG1, LOG_PROT, "%s", log_buf);
 }
 
 void MQS_remove_client(mqsock *mqs) {

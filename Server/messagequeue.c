@@ -73,7 +73,7 @@ void *init_messqueue(void *arg) {
 		} else {
 			pthread_mutex_unlock(&messq->mutex);
 			tcprioq_get(messq->inqueue, (void *)&mqi);
-
+printf("Thread %d\n", pthread_self());
 			switch (mqi->type) {
 				case MQI_TYPE_NEWCLNT:
 printf("newclnt\n");
@@ -92,7 +92,7 @@ printf("msg\n");
 					mq_send_msg(mqi, messq);
 					break;
 				default:
-					nlog(LOG_WARNING, LOG_CORE, "MQ Unknown Message Type %d in MessageQueue, Discarding", mqi->type);
+					nlog(LOG_WARNING, LOG_MESSQ, "MQ Unknown Message Type %d in MessageQueue, Discarding", mqi->type);
 					break;
 			}
 
@@ -152,7 +152,7 @@ void mq_join_queue(messqitm *mqi, myqueues *messq) {
 	/* find the client */
 	cli = find_client(mqi->conid);
 	if (!cli) {
-		nlog(LOG_WARNING, LOG_CORE, "MQ Can't Find Client %ld for joinqueue", mqi->conid);
+		nlog(LOG_WARNING, LOG_MESSQ, "MQ Can't Find Client %ld for joinqueue", mqi->conid);
 		return;
 	}
 	/* lock the client */
@@ -161,7 +161,7 @@ void mq_join_queue(messqitm *mqi, myqueues *messq) {
 	/* test to make sure the client isn't already a member of the queue */
 	if (hash_lookup(cli->queues, mqi->data.joinqueue.queue)) {
 		/* already a member, just drop silently */
-		nlog(LOG_WARNING, LOG_CORE, "MQ Client %s is already a member of queue %s", cli->username, mqi->data.joinqueue.queue);
+		nlog(LOG_WARNING, LOG_MESSQ, "MQ Client %s@%s is already a member of queue %s", cli->username, cli->host, mqi->data.joinqueue.queue);
 		MYUNLOCK(&cli->lock);
 		return;
 	}
@@ -185,7 +185,7 @@ void mq_join_queue(messqitm *mqi, myqueues *messq) {
 	
 	node = hnode_create(que);
 	hash_insert(cli->queues, node, que->name);
-	nlog(LOG_DEBUG1, LOG_CORE, "MQ Joined Client %s to Queue %s", cli->username, que->name);
+	nlog(LOG_DEBUG1, LOG_MESSQ, "MQ Joined Client %s@%s to Queue %s", cli->username, cli->host, que->name);
 	
 	/* XXX send queueinfo to the client */
 	sndmqi = malloc(sizeof(messqitm));
@@ -193,10 +193,12 @@ void mq_join_queue(messqitm *mqi, myqueues *messq) {
 	sndmqi->prio = PRIOQ_NORMAL;
 	sndmqi->conid = mqi->conid;
 	strncpy(sndmqi->data.joinqueue.queue, que->name, MAXQUEUE);
+
+	/* XXX Filter and Flags */
 	sndmqi->data.joinqueue.filter[0] = '\0';
 	sndmqi->data.joinqueue.flags = que->clntflags;
 	pthread_mutex_lock(&messq->mutex);
-	nlog(LOG_DEBUG1, LOG_CORE, "MQ Sending Queueinfo to %s for queue %s",cli->username, que->name);
+	nlog(LOG_DEBUG1, LOG_MESSQ, "MQ Sending Queueinfo to %s@%s for queue %s",cli->username, cli->host, que->name);
 	tcprioq_add(messq->outqueue, (void *)sndmqi);
 	pthread_mutex_unlock(&messq->mutex);
 	/* unlock the locks */
@@ -215,7 +217,7 @@ void mq_send_msg(messqitm *mqi, myqueues *messq) {
 	/* find the client */
 	sendcli = find_client(mqi->conid);
 	if (!sendcli) {
-		nlog(LOG_WARNING, LOG_CORE, "MQ Can't Find Client %ld for sendmsg", mqi->conid);
+		nlog(LOG_WARNING, LOG_MESSQ, "MQ Can't Find Client %ld for sendmsg", mqi->conid);
 		return;
 	}
 	/* lock the client */
@@ -225,12 +227,15 @@ void mq_send_msg(messqitm *mqi, myqueues *messq) {
 	que = find_queue(mqi->data.msg.queue);
 	if (!que) {
 		/* if the queue doesn't exist, drop the message */
-		nlog(LOG_WARNING, LOG_CORE, "MQ Can't find Queue %s for client %s message", mqi->data.msg.queue, sendcli->username);
+		nlog(LOG_WARNING, LOG_MESSQ, "MQ Can't find Queue %s for client %s@%s message", mqi->data.msg.queue, sendcli->username, sendcli->host);
 		MYUNLOCK(&sendcli->lock);
+		/* XXX Send Error Message */
+		return;
 	}
 	MYLOCK(&que->lock);
 
-	/* get the qm entry for this user */
+
+	/* get the queuemember entry for this user so we can see flags etc.*/
 	node = hash_lookup(que->clients, sendcli->username);
 	if (node) {
 		sendqm = hnode_get(node);
@@ -265,10 +270,11 @@ void mq_send_msg(messqitm *mqi, myqueues *messq) {
 		sndmqi->data.sndmsg.msg = malloc(mqi->data.msg.len+1);
 		strncpy(sndmqi->data.sndmsg.msg, mqi->data.msg.msg, mqi->data.msg.len);
 		pthread_mutex_lock(&messq->mutex);
-		nlog(LOG_DEBUG1, LOG_CORE, "MQ Sending Message from %s to %s on queue %s", sendcli->username, rcptqm->cli->username, que->name);
+		nlog(LOG_DEBUG1, LOG_MESSQ, "MQ Sending Message from %s@%s to %s@%s on queue %s", sendcli->username, sendcli->host, rcptqm->cli->username, rcptqm->cli->host, que->name);
 		tcprioq_add(messq->outqueue, (void *)sndmqi);
 		pthread_mutex_unlock(&messq->mutex);
 	}						
 	MYUNLOCK(&que->lock);
+	MYUNLOCK(&sendcli->lock);
 	free(mqi->data.msg.msg);
 }

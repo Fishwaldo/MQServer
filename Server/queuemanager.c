@@ -169,7 +169,7 @@ extern int qm_newclnt(mqsock *mqs, authqitm *aqi) {
 	
 	mqi = malloc(sizeof(messqitm));
 	/* new clients go in with low priority */
-	mqi->prio = PRIOQ_SLOW;
+	mqi->prio = PRIOQ_NORMAL;
 	mqi->conid = mqs->connectid;
 	mqi->type = MQI_TYPE_NEWCLNT;
 	strncpy(mqi->data.new_clnt.username, aqi->username, MAXUSER);
@@ -233,7 +233,7 @@ extern int qm_joinq(mqsock *mqs, char *queue, long flags, char *filter) {
 	int i;
 	
 	mqi = malloc(sizeof(messqitm));
-	mqi->prio = PRIOQ_SLOW;
+	mqi->prio = PRIOQ_NORMAL;
 	mqi->conid = mqs->connectid;
 	mqi->type = MQI_TYPE_JOINQ;
 	strncpy(mqi->data.joinqueue.queue, queue, MAXQUEUE);
@@ -266,7 +266,7 @@ extern int qm_sendmsg(mqsock *mqs, char *queue, void *msg, size_t len, char *top
 	int i;
 	
 	mqi = malloc(sizeof(messqitm));
-	mqi->prio = PRIOQ_SLOW;
+	mqi->prio = PRIOQ_NORMAL;
 	mqi->conid = mqs->connectid;
 	mqi->type = MQI_TYPE_MES;
 	/* data is always base64 encoded */

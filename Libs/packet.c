@@ -356,6 +356,7 @@ void print_decode(mqpacket *mqp, int what) {
 	char buf2[1024];
 	int len = 0;
 	
+	return;
 	bzero(buf2, 1024);
 	switch (what) {
 		case 1:

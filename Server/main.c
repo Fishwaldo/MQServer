@@ -128,8 +128,8 @@ main (int argc, char *argv[])
 	me.authqthreshold = 5;
 	me.authqmaxthreads = 5;	
 	me.authqtimeout = 10;
-	me.messqthreshold = 5;
-	me.messqmaxthreads = 5;	
+	me.messqthreshold = 500;
+	me.messqmaxthreads = 1;	
 	me.messqtimeout = 10000;
 
 

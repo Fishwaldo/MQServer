@@ -63,9 +63,7 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 		buffer[buflen] = '\0';
 		if (!strstr(buffer, "</xds>")) {
 			return -2;
-		} else {
-			printf("got footer\n");
-		}
+		} 
 		rc = xds_decode (mqp->xdsin, "xmlstart mqpheader", mqp);
 	} else {
 		rc = xds_decode (mqp->xdsin, "mqpheader", mqp);

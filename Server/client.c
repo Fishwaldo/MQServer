@@ -56,7 +56,7 @@ void mq_new_client(messqitm *mqi) {
 	mqc->clntid = mqi->conid;
 	mqc->queues = hash_create(-1, 0, 0);
 	
-	nlog(LOG_DEBUG1, LOG_CORE, "MQ Created new MQ Client for %s@%s", mqc->username, mqc->host);
+	nlog(LOG_DEBUG1, LOG_AUTHQ, "MQ Created new MQ Client for %s@%s", mqc->username, mqc->host);
 
 	node = lnode_create(mqc);
 	MYLOCK(&mq_clientslock);
@@ -113,7 +113,7 @@ void mq_del_client(messqitm *mqi) {
 		while ((node2 = hash_scan_next(&hs))) {
 			que = hnode_get(node2);
 			MYLOCK(&que->lock);
-			nlog(LOG_DEBUG1, LOG_CORE, "MQ Deleting Client %s out of Queue %s", mqc->username, que->name);
+			nlog(LOG_DEBUG1, LOG_AUTHQ, "MQ Deleting Client %s@%s out of Queue %s", mqc->username, mqc->host, que->name);
 			/* find the clients entry to the queue hash client list */
 			node3 = hash_lookup(que->clients, mqc->username);
 			if (node3) hash_delete(que->clients, node3);
@@ -123,7 +123,7 @@ void mq_del_client(messqitm *mqi) {
 			/* remove the queue from this clients entry */
 			hash_scan_delete(mqc->queues, node2);
 		}		
-		nlog(LOG_DEBUG1, LOG_CORE, "MQ Deleting %s out of MQ Clients", mqc->username);
+		nlog(LOG_DEBUG1, LOG_AUTHQ, "MQ Deleting %s@%s out of MQ Clients", mqc->username, mqc->host);
 		list_delete(mq_clients, node);
 		/* finished with the list, unlock for other threads */
 		MYUNLOCK(&mq_clientslock);
@@ -132,7 +132,7 @@ void mq_del_client(messqitm *mqi) {
 		hash_destroy(mqc->queues);
 		free(mqc);
 	} else {
-		nlog(LOG_DEBUG1, LOG_CORE, "MQ Couldn't find Client ID %ld", mqi->conid);
+		nlog(LOG_DEBUG1, LOG_AUTHQ, "MQ Couldn't find Client ID %ld", mqi->conid);
 	}	
 }
 

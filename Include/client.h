@@ -38,6 +38,7 @@ list_t *mq_clients;
 mylocks mq_clientslock;
 
 
+
 typedef struct mqclient {
 	int clntid;
 	mylocks lock;
