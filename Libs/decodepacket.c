@@ -38,6 +38,7 @@
 #include "list.h"
 #include "packet.h"
 #include "getchar.h"
+#include "xds.h"
 
 static void pck_send_err(mqprotocol *mqp, int err, const char *msg);
 static int pck_check_packet_crc(mqpacket *, mqprotocol *);
@@ -85,14 +86,66 @@ static int compare_mid(const void *key1, const void *key2) {
 static lnode_t *pck_find_mid_node(unsigned long MID, list_t *queue) {
 	return (list_find(queue, (void *)MID, compare_mid));
 }
+	
+
+	
 		
+void pck_create_mqpacket(mqpacket *mqpck, int type) {
+	int i;
+	mqpck = malloc(sizeof(mqpacket));
+	if (xds_init(&mqpck->xds, XDS_DECODE) != XDS_OK) {
+		if (mqpconfig.logger)
+			mqpconfig.logger("xds init failed: %s", strerrno(errno));
+	}
+	i = 0;
+	switch (type) {
+		case ENG_TYPE_XDR:
+			while (i < NUMENGINES) {
+				if (xds_register(mqpck->xds, dec_xdr_engines[i].myname, dec_xdr_engines[i].ptr, NULL) != XDS_OK) {
+				if (mqpconfig.logger) 
+					mqpconfig.logger("xds_register failed for %s", dec_xdr_engines[i].myname);
+				i++;
+			}
+			break;
+		case ENG_TYPE_XML:
+			while (i < NUMENGINES) {
+				if (xds_register(mqpck->xds, dec_xml_engines[i].myname, dec_xml_engines[i].ptr, NULL) != XDS_OK) {
+				if (mqpconfig.logger) 
+					mqpconfig.logger("xds_register failed for %s", dec_xml_engines[i].myname);
+				i++;
+			}
+			break;
+		default:
+			if (mqpconfig.logger)
+				mqpconfig.logger("invalid pck_create_mqpacket type %d", type);
+			xds_destroy(mqpck->xds);
+			free(mqpck);
+			return;
+	}
+}
 
-
+/* this is called from the socket recv code. */
 int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen) {
 	mqpacket *mqpck;
 	u_char *outbuf;
 	int gotdatasize;
 	lnode_t *node;
+
+	if (mqp->wtforinpack == 1) {
+		/* XXX XDR engine for now */
+		pck_create_mqpacket(mqpck, ENG_TYPE_XDR);
+		if (mqpck = NULL) {
+			/* XXX drop client ? */
+			return 0;
+		}
+	
+	
+	
+	
+	
+	}
+
+#if 0
 
 	/* first thing we do is decide if the buffer holds the minium packet size required.*/
 	if (buflen < PCK_MIN_PACK_SIZE) {
@@ -196,6 +249,7 @@ int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen) {
 			
 		}
 	}
+#endif
 	/* nothing done on the buffer, so return 0 */
 	return 0;
 }

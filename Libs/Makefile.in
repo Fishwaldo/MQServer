@@ -33,7 +33,7 @@ DOCS_PROGS =
 DATA = 
 
 OBJS = ${SRCS:.c=.o}
-SRCS =	decodepacket.c encodepacket.c encode.c
+SRCS =	decodepacket.c encodepacket.c encode.c xds.c xds_engine_xdr.c xds_engine_xml.c xds_version.c
 
 INCLUDES = config.h hash.h list.h mqserver.h log.h dotconf.h dict.h
 

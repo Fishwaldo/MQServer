@@ -107,6 +107,7 @@ else
   AC_DEFINE_UNQUOTED(NEO_PREFIX, "${prefix}")
 fi
 
+AC_XDS
 NEO_SUBDIR_CONFIG(libevent, [--disable-shared --enable-static])
 NEO_SUBDIR_CONFIG(sqlite, [--enable-static --disable-shared --enable-tempdb-in-ram --enable-incore-db])
 
@@ -124,7 +125,7 @@ AC_SUBST(UTF8)
 AC_SUBST(LIBS)
 AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
-AC_OUTPUT(Makefile Server/Makefile Libs/Makefile)
+AC_OUTPUT(Makefile Server/Makefile Libs/Makefile Include/xds.h)
 echo "(*----------------------------------------------------------*)"
 echo "(| Important Instructions                                   |)"
 echo "(*----------------------------------------------------------*)"
