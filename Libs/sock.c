@@ -85,6 +85,14 @@ int pck_simple_callback(void *mqplib, mqpacket *mqp) {
 				return NS_FAILURE;
 			}
 			break;
+		case PCK_QUEUEINFO:
+			pck_logger("Got QueueInfo for %s: %d (%s)", mqp->inmsg.data.joinqueue.queue, mqp->inmsg.data.joinqueue.flags, mqp->inmsg.data.joinqueue.filter);
+			type = PCK_SMP_QUEUEINFO;
+			break;
+		case PCK_MSGFROMQUEUE:
+			pck_logger("Got Message from Queue %s sent by %s on %d with topic %s with messid %d", mqp->inmsg.data.sendmsg.queue, mqp->inmsg.data.sendmsg.from, mqp->inmsg.data.sendmsg.timestamp, mqp->inmsg.data.sendmsg.topic, mqp->inmsg.data.sendmsg.messid);
+			type = PCK_SMP_MSGFROMQUEUE;
+			break;
 		default:
 			pck_logger("Uknown msgtype recieved: %xd", mqp->inmsg.MSGTYPE);
 	}			
@@ -406,26 +414,69 @@ pck_make_connection (char *hostname, char *username, char *password, long flags,
 }
 
 unsigned long
-pck_simple_send_message_struct(int conid, structentry *mystruct, int cols, void *data, char *destination) {
+pck_simple_send_message_struct(int conid, structentry *mystruct, int cols, void *data, char *destination, char *topic) {
 	lnode_t *node;
 	mqpacket *mqp;
 
 	node = pck_find_fd_node(conid, connections);
 	if (node) {
 		mqp = lnode_get(node);
-		return(pck_send_message_struct(sockconfig.mqplib, mqp, mystruct, cols, data, destination));
+		return(pck_send_message_struct(sockconfig.mqplib, mqp, mystruct, cols, data, destination, topic));
 	}
 	return NS_FAILURE;
 }
 unsigned long
-pck_simple_joinqueue(int conid, char *queue, int flags) {
+pck_simple_joinqueue(int conid, char *queue, int flags, char *filter) {
 	lnode_t *node;
 	mqpacket *mqp;
 
 	node = pck_find_fd_node(conid, connections);
 	if (node) {
 		mqp = lnode_get(node);
-		return (pck_send_joinqueue(sockconfig.mqplib, mqp, queue, flags));
+		return (pck_send_joinqueue(sockconfig.mqplib, mqp, queue, flags, filter));
 	}
 	return NS_FAILURE;
+}
+
+/* this can only be called when we get a QUEUEINFO message */
+mq_data_joinqueue
+*pck_get_queueinfo(int conid) {
+	lnode_t *node;
+	mqpacket *mqp;
+
+	node = pck_find_fd_node(conid, connections);
+	if (node) {
+		mqp = lnode_get(node);
+		if (mqp->inmsg.MSGTYPE != PCK_QUEUEINFO) {
+			return NULL;
+		}
+		return &mqp->inmsg.data.joinqueue;
+	}
+	return NULL;
+}
+
+/* this can only be called when we get a MSGFROMQUEUE message */
+mq_data_senddata 
+*pck_get_msgfromqueue(int conid) {
+	lnode_t *node;
+	mqpacket *mqp;
+
+	node = pck_find_fd_node(conid, connections);
+	if (node) {
+		mqp = lnode_get(node);
+		if (mqp->inmsg.MSGTYPE != PCK_MSGFROMQUEUE) {
+			return NULL;
+		}
+		return &mqp->inmsg.data.sendmsg;
+	}
+	return NULL;
+}
+
+void 
+*pck_decode_message(mq_data_senddata *sd, structentry *mystruct, int cols, void *target) {
+	/* XXX This needs some thinking about. Not tonight! */
+
+
+
+
 }

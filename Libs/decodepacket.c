@@ -58,6 +58,14 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 	/* lets use a switch here to handle it intelegently */
 
 	if (mqp->wiretype == ENG_TYPE_XML) {
+		/* look for terminator */
+		/* XML is a string, so make sure its null terminated at the right point */
+		buffer[buflen] = '\0';
+		if (!strstr(buffer, "</xds>")) {
+			return -2;
+		} else {
+			printf("got footer\n");
+		}
 		rc = xds_decode (mqp->xdsin, "xmlstart mqpheader", mqp);
 	} else {
 		rc = xds_decode (mqp->xdsin, "mqpheader", mqp);
@@ -70,7 +78,7 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 			if (mqplib->logger)
 				mqplib->logger ("XDS Decode of Header Failed. Buffer Underflow");
 			/* don't consume any buffer */
-			return NS_SUCCESS;
+			return -2;
 		default:
 			if (mqplib->logger)
 				mqplib->logger ("XDS Decode of Header Failed: %d", rc);
@@ -104,10 +112,16 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 			rc = xds_decode(mqp->xdsin, PCK_AUTH_FMT, &mqp->inmsg.data.auth.username, &mqp->inmsg.data.auth.password);
 			break;
 		case PCK_SENDTOQUEUE:
-			rc = xds_decode(mqp->xdsin, PCK_SENDTOQUEUE_FMT, &mqp->inmsg.data.stream.queue, &mqp->inmsg.data.stream.len, &mqp->inmsg.data.stream.data, &mqp->inmsg.data.stream.datalen);
+			rc = xds_decode(mqp->xdsin, PCK_SENDTOQUEUE_FMT, &mqp->inmsg.data.stream.queue, &mqp->inmsg.data.stream.len, &mqp->inmsg.data.stream.topic, &mqp->inmsg.data.stream.data, &mqp->inmsg.data.stream.datalen);
 			break;
 		case PCK_JOINQUEUE:
-			rc = xds_decode(mqp->xdsin, PCK_JOINQUEUE_FMT, &mqp->inmsg.data.joinqueue.queue, &mqp->inmsg.data.joinqueue.flags);
+			rc = xds_decode(mqp->xdsin, PCK_JOINQUEUE_FMT, &mqp->inmsg.data.joinqueue.queue, &mqp->inmsg.data.joinqueue.flags, &mqp->inmsg.data.joinqueue.filter);
+			break;
+		case PCK_QUEUEINFO:
+			rc = xds_decode(mqp->xdsin, PCK_QUEUEINFO_FMT, &mqp->inmsg.data.joinqueue.queue, &mqp->inmsg.data.joinqueue.flags, &mqp->inmsg.data.joinqueue.filter);
+			break;
+		case PCK_MSGFROMQUEUE:
+			rc = xds_decode(mqp->xdsin, PCK_MSGFROMQUEUE_FMT, &mqp->inmsg.data.sendmsg.queue, &mqp->inmsg.data.sendmsg.topic, &mqp->inmsg.data.sendmsg.data, &mqp->inmsg.data.sendmsg.len, &mqp->inmsg.data.sendmsg.messid, &mqp->inmsg.data.sendmsg.timestamp, &mqp->inmsg.data.sendmsg.from);
 			break;
 		default:
 			if (mqplib->logger)
@@ -123,7 +137,7 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 			if (mqplib->logger)
 				mqplib->logger ("XDS Decode of Data Failed. Buffer Underflow");
 			/* don't consume any buffer */
-			return NS_SUCCESS;
+			return -2;
 		default:
 			if (mqplib->logger)
 				mqplib->logger ("XDS Decode of Data Failed: %d", rc);
@@ -138,12 +152,12 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long bu
 				break;
 			case XDS_ERR_UNDERFLOW:
 				if (mqplib->logger)
-					mqplib->logger ("XDS Decode of Header Failed. Buffer Underflow");
+					mqplib->logger ("XDS Decode of Footer Failed. Buffer Underflow");
 				/* don't consume any buffer */
-				return NS_SUCCESS;
+				return -2;
 			default:
 				if (mqplib->logger)
-					mqplib->logger ("XDS Decode of Header Failed: %d", rc);
+					mqplib->logger ("XDS Decode of Footer Failed: %d", rc);
 				/* drop client */
 				return NS_FAILURE;
 		}

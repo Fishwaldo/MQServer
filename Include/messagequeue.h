@@ -25,7 +25,29 @@
 
 #ifndef MESSAGEQUEUE_H
 #define MESSAGEQUEUE_H
+#include "client.h"
+
+hash_t *mq_queues;
+mylocks mq_queuelock;
+
+
+typedef struct mqqueue {
+	char name[MAXQUEUE];
+	hash_t *clients;
+	mylocks lock;
+	long nxtmsgid;
+	long clntflags;
+} mqqueue;
+
+typedef struct mqqueuemember {
+	mqclient *cli;
+	char filter[BUFSIZE];
+	long flags;
+} mqqueuemember;
+
+
 
 void *init_messqueue(void *arg);
+int setup_messq();
 
 #endif

@@ -102,6 +102,11 @@
 #endif
 
 
+#ifndef MAXQUEUE		
+#define MAXQUEUE		32
+#endif
+
+
 /* MAXPATH 
  * used to determine buffer sizes for file system operations
  */

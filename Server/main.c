@@ -39,6 +39,7 @@
 #include "queuemanager.h"
 #include "conf.h"
 #include "client.h"
+#include "messagequeue.h"
 
 /*! Date when we were compiled */
 const char version_date[] = __DATE__;
@@ -135,6 +136,10 @@ main (int argc, char *argv[])
 	/* setup the mqclients list */
 	mq_clients = list_create(-1);
 	MYLOCK_INIT(mq_clientslock);
+
+	/* setup the mq_queues list */
+        mq_queues = hash_create(-1, 0, 0);
+        MYLOCK_INIT(mq_queuelock);
 
 
 	/* prepare to catch errors */

@@ -73,38 +73,52 @@
 #define PCK_CLNTCAP_FMT		"int32 int32 string"
 #define PCK_AUTH_FMT		"string string"
 
-#define PCK_JOINQUEUE_FMT	"string int32"
-#define PCK_SENDTOQUEUE_FMT	"string int32 octet"
+#define PCK_JOINQUEUE_FMT	"string int32 string"
+#define PCK_SENDTOQUEUE_FMT	"string int32 string octet"
+#define PCK_QUEUEINFO_FMT	"string int32 string"
+#define PCK_MSGFROMQUEUE_FMT	"string string octet int32 int32 string"
 
 /* packet flags, not message flags */
 #define PCK_FLG_REQUIREACK		0x01
 #define PCK_FLG_REQUIREACPPROCESS 	0x02
 
 
-struct mq_data_stream {
+typedef struct mq_data_stream {
 	char *queue;
 	void *data;
 	size_t datalen;
 	size_t len;
+	char *topic;
 } mq_data_stream;
 
-struct mq_data_srvcap {
+typedef struct mq_data_srvcap {
 	int srvcap1;
 	int srvcap2;
 	char *capstr;
 } mq_data_srvcap;
 
-struct mq_data_auth {
+typedef struct mq_data_auth {
 	char *username;
 	char *password;
 	char host[BUFSIZE];
 	long flags;
 } mq_data_auth;
 
-struct mq_data_joinqueue {
+typedef struct mq_data_joinqueue {
 	char *queue;
 	long flags;
+	char *filter;
 } mq_data_joinqueue;
+
+typedef struct mq_data_senddata {
+	char *queue;
+	char *topic;
+	void *data;
+	size_t len;
+	unsigned long messid;
+	long timestamp;
+	char *from;
+} mq_data_senddata;
 
 struct message {
 	int MID;
@@ -116,6 +130,7 @@ struct message {
 		struct mq_data_srvcap srvcap;
 		struct mq_data_auth auth;
 		struct mq_data_joinqueue joinqueue;
+		struct mq_data_senddata sendmsg;
 		char *string;
 		int num;
 	} data;
@@ -197,11 +212,14 @@ void print_decode(mqpacket *, int what);
 int pck_parse_packet (mqp *mqplib, mqpacket * mqp, u_char * buffer, unsigned long buflen);
 unsigned long pck_send_ack(mqp *mqplib, mqpacket *mqp, int MID);
 unsigned long pck_send_error(mqp *mqplib, mqpacket *mqp, char *fmt, ...);
-unsigned long pck_send_message_struct(mqp *mqplib, mqpacket *mqp, structentry *mystruct, int cols, void *data, char *destination);
-unsigned long pck_send_joinqueue(mqp *mqplib, mqpacket *mqpck, char *queue, int flags);
+unsigned long pck_send_message_struct(mqp *mqplib, mqpacket *mqp, structentry *mystruct, int cols, void *data, char *destination, char *topic);
+unsigned long pck_send_joinqueue(mqp *mqplib, mqpacket *mqpck, char *queue, int flags, char *filter);
 unsigned long pck_send_srvcap(mqp *mqplib, mqpacket *mqp);
 unsigned long pck_send_auth(mqp *mqplib, mqpacket *mqp, char *username, char *password);
 unsigned long pck_send_clntcap(mqp *mqplib, mqpacket *mqp);
+unsigned long pck_send_queueinfo(mqp *mqplib, mqpacket *mqpck, char *queue, char *info, int flags);
+unsigned long pck_send_queue_mes(mqp *mqplib, mqpacket *mqpck, char *queue, char *topic, void *data, size_t len, unsigned long messid, long timestamp, char *from);
+
 
 /* this is the standalone un-threadsafe interface */
 typedef int (actioncbfunc)(int, void *);
@@ -210,8 +228,10 @@ int debug_socket(int i);
 int enable_server(int port);
 int pck_process ();
 int pck_make_connection (char *hostname, char *, char *, long , void *cbarg, actioncbfunc *);
-unsigned long pck_simple_send_message_struct(int conid, structentry *mystruct, int cols, void *data, char *destination);
-unsigned long pck_simple_joinqueue(int conid, char *queue, int flags);
+unsigned long pck_simple_send_message_struct(int conid, structentry *mystruct, int cols, void *data, char *destination, char *topic);
+unsigned long pck_simple_joinqueue(int conid, char *queue, int flags, char *filter);
+mq_data_joinqueue *pck_get_queueinfo(int conid);
+mq_data_senddata *pck_get_msgfromqueue(int conid);
 
 /* these are error defines */
 #define PCK_ERR_BUFFULL		1
@@ -223,6 +243,8 @@ unsigned long pck_simple_joinqueue(int conid, char *queue, int flags);
 
 /* these are the simple callback types */
 #define PCK_SMP_LOGINOK		1
+#define PCK_SMP_QUEUEINFO	2
+#define PCK_SMP_MSGFROMQUEUE	3
 
 
 #define PCK_SMP_CLNTCAPREJ	-1

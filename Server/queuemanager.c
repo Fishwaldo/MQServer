@@ -150,6 +150,9 @@ extern int qm_check_messq() {
 	i = tcprioq_items(messq->outqueue);
 	if (i > 0) {
 		while (!tcprioq_get(messq->outqueue, (void *)&mqi)) {
+			/* XXX do something */
+			MQS_Mesq_Callback(mqi);
+			free(mqi);
 		}	
 	}                                                                                                                                                                                                             
 	pthread_mutex_unlock(&messq->mutex);
@@ -202,6 +205,76 @@ extern int qm_delclnt(mqsock *mqs) {
 	mqi->prio = PRIOQ_SLOW;
 	mqi->conid = mqs->connectid;
 	mqi->type = MQI_TYPE_DELCLNT;
+
+	/* lock the messq */
+	pthread_mutex_lock(&messq->mutex);
+	/* add it to the queue */
+	tcprioq_add(messq->inqueue, mqi);
+	
+	/* check if we have a authq thread running */
+	i = count_threads("messqm");
+	/* if there is no thread, or we have x items in the queue, and have not reached out authq max threads setting, 
+	 * then start up a new thread 
+	 */
+	if ((i <= 0) || ((tcprioq_items(messq->inqueue) > me.messqthreshold) && (i < me.messqmaxthreads))) {
+		/* start a new thread */
+		create_thread("messqm", init_messqueue, messq);
+	}	
+	/* wake up a thread */
+	pthread_mutex_unlock(&messq->mutex);
+	pthread_cond_signal(&messq->cond);
+	return NS_SUCCESS;
+}	
+
+
+/* this function is called when a client is deleted */
+extern int qm_joinq(mqsock *mqs, char *queue, long flags, char *filter) {
+	messqitm *mqi;
+	int i;
+	
+	mqi = malloc(sizeof(messqitm));
+	mqi->prio = PRIOQ_SLOW;
+	mqi->conid = mqs->connectid;
+	mqi->type = MQI_TYPE_JOINQ;
+	strncpy(mqi->data.joinqueue.queue, queue, MAXQUEUE);
+	strncpy(mqi->data.joinqueue.filter, filter, BUFSIZE);
+	mqi->data.joinqueue.flags = flags;
+
+	/* lock the messq */
+	pthread_mutex_lock(&messq->mutex);
+	/* add it to the queue */
+	tcprioq_add(messq->inqueue, mqi);
+	
+	/* check if we have a authq thread running */
+	i = count_threads("messqm");
+	/* if there is no thread, or we have x items in the queue, and have not reached out authq max threads setting, 
+	 * then start up a new thread 
+	 */
+	if ((i <= 0) || ((tcprioq_items(messq->inqueue) > me.messqthreshold) && (i < me.messqmaxthreads))) {
+		/* start a new thread */
+		create_thread("messqm", init_messqueue, messq);
+	}	
+	/* wake up a thread */
+	pthread_mutex_unlock(&messq->mutex);
+	pthread_cond_signal(&messq->cond);
+	return NS_SUCCESS;
+}	
+
+/* this function is called when a client is deleted */
+extern int qm_sendmsg(mqsock *mqs, char *queue, void *msg, size_t len, char *topic) {
+	messqitm *mqi;
+	int i;
+	
+	mqi = malloc(sizeof(messqitm));
+	mqi->prio = PRIOQ_SLOW;
+	mqi->conid = mqs->connectid;
+	mqi->type = MQI_TYPE_MES;
+	/* data is always base64 encoded */
+	mqi->data.msg.msg = malloc(len+1);
+	strncpy(mqi->data.msg.msg, msg, len);
+	strncpy(mqi->data.msg.queue, queue, MAXQUEUE);
+	strncpy(mqi->data.msg.topic, topic, MAXQUEUE);
+	mqi->data.msg.len = len;
 
 	/* lock the messq */
 	pthread_mutex_lock(&messq->mutex);

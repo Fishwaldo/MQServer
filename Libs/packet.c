@@ -219,11 +219,13 @@ read_fd (mqp *mqplib, mqpacket *mqp)
 	/* don't process packet till its authed */
 	while ((mqp->offset > 0)  && i > 0) {
 		i = pck_parse_packet (mqplib, mqp, mqp->buffer, mqp->offset);
-		if (i > 0) {
+		if (i > 1) {
 			buffer_del (mqp, i);
 		} else if (i == NS_FAILURE) {
 			close_fd (mqplib, mqp);
 			return NS_FAILURE;
+		} else if (i == -2) {
+			return NS_SUCCESS;
 		}
 	}
 	if (mqplib->logger) {

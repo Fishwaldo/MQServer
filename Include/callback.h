@@ -28,5 +28,5 @@
 
 int MQS_Callback(void *mqplib, mqpacket *mqp);
 int MQS_Auth_Callback(authqitm *aqi);
-
+int MQS_Mesq_Callback(messqitm *mqi);
 #endif

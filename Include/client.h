@@ -43,10 +43,12 @@ typedef struct mqclient {
 	mylocks lock;
 	char username[MAXNICK];
 	char host[MAXHOST];
+	hash_t *queues;
 } mqclient;
 
 void mq_new_client(messqitm *mqi);
 void mq_del_client(messqitm *mqi);
+extern mqclient *find_client(int id);
 
 
 #endif

@@ -59,6 +59,10 @@ typedef struct authqitm {
 
 #define MQI_TYPE_NEWCLNT 1
 #define MQI_TYPE_DELCLNT 2
+#define MQI_TYPE_MES 	 3
+#define MQI_TYPE_JOINQ	 4
+#define MQI_SEND_QI	 19
+#define MQI_SEND_MES	 20
 
 typedef struct messqitm {
 	int prio;
@@ -69,6 +73,26 @@ typedef struct messqitm {
 			char username[MAXUSER];
 			char host[MAXHOST];
 		} new_clnt;
+		struct msg {
+			char queue[MAXQUEUE];
+			void *msg;
+			size_t len;
+			char topic[MAXQUEUE];
+		} msg;
+		struct joinqueue {
+			char queue[MAXQUEUE];
+			long flags;
+			char filter[BUFSIZE];
+		} joinqueue;
+		struct sndmsg {
+			char topic[MAXQUEUE];
+			void *msg;
+			size_t len;
+			char queue[MAXQUEUE];
+			long messid;
+			long timestamp;
+			char from[MAXUSER];
+		} sndmsg;
 	} data;
 } messqitm;
 
@@ -81,5 +105,6 @@ extern int qm_delclnt(mqsock *mqs);
 extern int qm_check_authq();
 extern int qm_check_messq();
 extern int qm_newauthqitm(mqsock *mqs, char *username, char *password, int mid);
-
+extern int qm_joinq(mqsock *mqs, char *queue, long flags, char *filter);
+extern int qm_sendmsg(mqsock *mqs, char *queue, void *msg, size_t len, char *topic);
 #endif

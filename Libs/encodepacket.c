@@ -214,7 +214,7 @@ pck_commit_data (mqp * mqplib, mqpacket * mqpck)
 
 
 unsigned long 
-pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int cols, void *data, char *destination) {
+pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int cols, void *data, char *destination, char *topic) {
 	int rc, i, myint;
 	void *mydata;
 	void *buffer;
@@ -267,7 +267,7 @@ pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int
 	if (pck_prepare(mqplib, mqpck, PCK_SENDTOQUEUE) != NS_SUCCESS) {
 		return NS_FAILURE;
 	}
-	rc = xds_encode (mqpck->xdsout, PCK_SENDTOQUEUE_FMT, destination, bufferlen, buffer, bufferlen);
+	rc = xds_encode (mqpck->xdsout, PCK_SENDTOQUEUE_FMT, destination, bufferlen, topic, buffer, bufferlen);
 
 	if (rc != XDS_OK) {
 		if (mqplib->logger)
@@ -280,13 +280,13 @@ pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int
 }
 
 unsigned long
-pck_send_joinqueue(mqp *mqplib, mqpacket *mqpck, char *queue, int flags) {
+pck_send_joinqueue(mqp *mqplib, mqpacket *mqpck, char *queue, int flags, char *filter) {
 	int rc;
 		
 	if (pck_prepare(mqplib, mqpck, PCK_JOINQUEUE) != NS_SUCCESS) {
 		return NS_FAILURE;
 	}
-	rc = xds_encode (mqpck->xdsout, PCK_JOINQUEUE_FMT, queue, flags);
+	rc = xds_encode (mqpck->xdsout, PCK_JOINQUEUE_FMT, queue, flags, filter);
 
 	if (rc != XDS_OK) {
 		if (mqplib->logger)
@@ -296,3 +296,40 @@ pck_send_joinqueue(mqp *mqplib, mqpacket *mqpck, char *queue, int flags) {
 	
 	return (pck_commit_data(mqplib, mqpck));
 }
+
+unsigned long 
+pck_send_queueinfo(mqp *mqplib, mqpacket *mqpck, char *queue, char *info, int flags) {
+	int rc;
+		
+	if (pck_prepare(mqplib, mqpck, PCK_QUEUEINFO) != NS_SUCCESS) {
+		return NS_FAILURE;
+	}
+	rc = xds_encode (mqpck->xdsout, PCK_QUEUEINFO_FMT, queue, flags, info);
+
+	if (rc != XDS_OK) {
+		if (mqplib->logger)
+			mqplib->logger ("xds encode queueinfo failed %d.", rc);
+		return NS_FAILURE;
+	}
+	
+	return (pck_commit_data(mqplib, mqpck));
+}
+
+unsigned long
+pck_send_queue_mes(mqp *mqplib, mqpacket *mqpck, char *queue, char *topic, void *data, size_t len, unsigned long messid, long timestamp, char *from) {
+	int rc;
+		
+	if (pck_prepare(mqplib, mqpck, PCK_MSGFROMQUEUE) != NS_SUCCESS) {
+		return NS_FAILURE;
+	}
+	rc = xds_encode (mqpck->xdsout, PCK_MSGFROMQUEUE_FMT, queue, topic, data, len, messid, timestamp, from);
+
+	if (rc != XDS_OK) {
+		if (mqplib->logger)
+			mqplib->logger ("xds encode msgfromqueue failed %d.", rc);
+		return NS_FAILURE;
+	}
+	
+	return (pck_commit_data(mqplib, mqpck));
+}
+	

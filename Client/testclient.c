@@ -77,11 +77,20 @@ void *readstr(void *data, size_t *size) {
 }
 
 int gotaction(int type, void *cbarg) {
+	mq_data_joinqueue *qi;
+	mq_data_senddata *sd;
 	switch (type) {
 		case PCK_SMP_LOGINOK:
-			pck_simple_joinqueue(conid, "testqueue", 0);
-			pck_simple_send_message_struct(conid, &testdataentry, (sizeof(testdataentry)/sizeof(structentry)), tmp, "testqueue");
+			pck_simple_joinqueue(conid, "testqueue", 0, "*");
+			pck_simple_send_message_struct(conid, &testdataentry, (sizeof(testdataentry)/sizeof(structentry)), tmp, "testqueue", "Mytopic");
 			break;
+		case PCK_SMP_QUEUEINFO:
+			qi = pck_get_queueinfo(conid);
+			printf("queue info: %s %d %s\n", qi->queue, qi->flags, qi->filter);
+			break;
+		case PCK_SMP_MSGFROMQUEUE:
+			sd = pck_get_msgfromqueue(conid);
+			printf("queue %s topic %s messid %d time %d from %s\n", sd->queue, sd->topic, sd->messid, sd->timestamp, sd->from);
 	}			
 
 }
@@ -102,7 +111,7 @@ int main() {
 	printf("total size %d\n", (sizeof(testdataentry)/sizeof(structentry)));
 	
 	
-	conid = pck_make_connection("localhost", "fish", "haha", 0, NULL, gotaction);
+	conid = pck_make_connection("snoopy", "fish", "haha", 0, NULL, gotaction);
 	while (rc == 1) {
 		rc = pck_process();
 		sleep(1);
