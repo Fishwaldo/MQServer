@@ -95,6 +95,9 @@ int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen) {
 		GETLONG(mqpck->LEN, outbuf);
 		GETLONG(mqpck->flags, outbuf);
 		GETLONG(mqpck->crc, outbuf);
+		/* even though the rest of this is data, it might be additional flags. 
+		 * we encode this data, so its a C "string", ie, no Nulls. so we will only 
+		 * decode it once we get the entire string. */
 		gotdatasize = strlen(outbuf);
 #ifdef DEBUG
 		if (mqpconfig.logger)
@@ -105,7 +108,8 @@ int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen) {
 
 		mqpck->data = malloc(mqpck->LEN);
 		bzero(mqpck->data, mqpck->LEN);
-		strncat(mqpck->data, outbuf, mqpck->LEN);
+		/* seee above explaination about gotdatasize to see why treating this like a string is ok*/
+		strncpy(mqpck->data, outbuf, mqpck->LEN);
 
 		/* ok, seems fine so far, add it to the queue */
 		node = lnode_create(mqpck);
@@ -125,17 +129,45 @@ int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen) {
 				mqpconfig.logger("Got All Our Data. Processing MessageID %lu", mqpck->MID);
 #endif	
 			/* XXX ok, process this packet */
+			/* finished. ok, process next pack */
+			mqp->wtforinpack = 1;
 		} else {
-#ifdef DEBUG		
-			if (mqpconfig.logger)
-				mqpconfig.logger("Got More data than we expected. Throwing Away MessageID %lu", mqpck->MID);
-#endif	
 			/* XXX TODO Drop Client?*/
 		}			
 
 		return PCK_MIN_PACK_SIZE + gotdatasize;
 	} else {
-		/* XXX got additional data for previous message */
+		/* additional data is encoded as a string */
+		node = list_last(mqp->inpack);
+		/* ehhh, inpack node is empty. Something is screwy */
+		if (node == NULL) {
+			if (mqpconfig.logger)
+				mqpconfig.logger("Got lastnode is empty");
+			return -1;
+		}
+		mqpck = lnode_get(node);
+		gotdatasize = strlen(buffer);
+		if ((mqpck->LEN - strlen(mqpck->data)) == gotdatasize) {
+			/* this is the final pack, tack it on the end, and then pass it off for processing */
+			strncat(mqpck->data, buffer, mqpck->LEN);
+			/* XXX process it. */
+			mqp->wtforinpack = 1;
+		} else if ((mqpck->LEN - strlen(mqpck->data) - gotdatasize) < 0) {
+			/* we got more data than we expected. Eeeek */
+#ifdef DEBUG
+			if (mqpconfig.logger)
+				mqpconfig.logger("Got More data in buffer overflow than we expected. Throwing away MessageID %lu", mqpck->MID);
+#endif			
+			/* XXX TODO Drop Client? */
+		} else {
+			/* we must be waiting for more data still. Tack it on, and update. */
+			strncat(mqpck->data, buffer, mqpck->LEN);
+#ifdef DEBUG
+			if (mqpconfig.logger)
+				mqpconfig.logger("still waiting for more data in buffer overflowfor MessageID %lu", mqpck->MID);
+#endif			
+			
+		}
 	}
 	/* nothing done on the buffer, so return 0 */
 	return 0;
