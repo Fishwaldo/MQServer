@@ -1,15 +1,36 @@
-/* config.h.in.  Generated from configure.in by autoheader.  */
-/* Enable Debugging */
+/* Include/config.h.in.  Generated from configure.in by autoheader.  */
+
+/* Confuse Version */
+#undef CONFUSE_VERSION
+
+/* 'Enable Debugging' */
 #undef DEBUG
 
-/* Define to 1 if you have the <db.h> header file. */
-#undef HAVE_DB_H
+/* Define to 1 if translation of program messages to the user's native
+   language is requested. */
+#undef ENABLE_NLS
+
+/* 'backtrace function available' */
+#undef HAVE_BACKTRACE
+
+/* Define to 1 if you have the `bcopy' function. */
+#undef HAVE_BCOPY
+
+/* Define if the GNU dcgettext() function is already present or preinstalled.
+   */
+#undef HAVE_DCGETTEXT
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
-/* Define to 1 if your system has a working `fnmatch' function. */
+/* Define to 1 if your system has a working POSIX `fnmatch' function. */
 #undef HAVE_FNMATCH
+
+/* Define if the GNU gettext() function is already present or preinstalled. */
+#undef HAVE_GETTEXT
+
+/* Define if you have the iconv() function. */
+#undef HAVE_ICONV
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
@@ -17,20 +38,17 @@
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
 
+/* Define to 1 if you have the <limits.h> header file. */
+#undef HAVE_LIMITS_H
+
+/* Define to 1 if you have the `memmove' function. */
+#undef HAVE_MEMMOVE
+
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
-/* Define to 1 if you have the `regcomp' function. */
-#undef HAVE_REGCOMP
-
-/* Define to 1 if you have the `select' function. */
-#undef HAVE_SELECT
-
 /* Define to 1 if you have the `socket' function. */
 #undef HAVE_SOCKET
-
-/* Define if you have fcloseall */
-#undef HAVE_FCLOSEALL
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -38,29 +56,38 @@
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
 
+/* Define to 1 if you have the `strcasecmp' function. */
+#undef HAVE_STRCASECMP
+
 /* Define to 1 if you have the `strdup' function. */
 #undef HAVE_STRDUP
 
-/* Define to 1 if you have the `strdup' function. */
-#undef HAVE_STRNDUP
+/* Define to 1 if you have the `strerror' function. */
+#undef HAVE_STRERROR
 
 /* Define to 1 if you have the `strftime' function. */
 #undef HAVE_STRFTIME
-
-/* Define to 1 if you have the `strlcpy' function. */
-#undef HAVE_STRLCPY
-
-/* Define to 1 if you have the `strlcat' function. */
-#undef HAVE_STRLCAT
-
-/* Define to 1 if you have the `strnlen' function. */
-#undef HAVE_STRNLEN
 
 /* Define to 1 if you have the <strings.h> header file. */
 #undef HAVE_STRINGS_H
 
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
+
+/* Define to 1 if you have the `strlcat' function. */
+#undef HAVE_STRLCAT
+
+/* Define to 1 if you have the `strlcpy' function. */
+#undef HAVE_STRLCPY
+
+/* Define to 1 if you have the `strndup' function. */
+#undef HAVE_STRNDUP
+
+/* Define to 1 if you have the `strnlen' function. */
+#undef HAVE_STRNLEN
+
+/* Define to 1 if you have the <sys/select.h> header file. */
+#undef HAVE_SYS_SELECT_H
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
@@ -76,6 +103,15 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Major MQServer Version */
+#undef MAJOR
+
+/* Minor MQServer Version */
+#undef MINOR
+
+/* MQServer Version */
+#undef MQSERVER_PACKAGE_VERSION
 
 /* Name of package */
 #undef PACKAGE
@@ -98,6 +134,9 @@
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE
 
+/* MQServer Revision */
+#undef REV
+
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
@@ -107,34 +146,13 @@
 /* Define to 1 if your <sys/time.h> declares `struct tm'. */
 #undef TM_IN_SYS_TIME
 
+
+/* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
+   `char[]'. */
+#undef YYTEXT_POINTER
+
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
 
 /* Define to `unsigned' if <sys/types.h> does not define. */
 #undef size_t
-
-/* define if you have Backtrace */
-#undef HAVE_BACKTRACE
-
-/* Version number of package */
-#undef MQSERVER_PACKAGE_VERSION
-
-/* Install directory */
-#undef NEO_PREFIX
-
-/* Major Version */
-#undef MAJOR
-
-/* Minor Version */
-#undef MINOR
-
-/* Revision Version */
-#undef REV
-
-/* Define as __inline if that's what the C compiler calls it.  */
-#undef inline
- 
-/* Have pthread mutex locking and unlocking functions in libc */
-#undef HAVE_PTHREAD_MUTEX
-
-
