@@ -79,6 +79,9 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp)
 			/* don't consume any buffer */
 			return -2;
 		default:
+#ifdef PACKDEBUG
+			printf("%s\n", mqp->inbuf->buffer);
+#endif
 			if (mqplib->logger)
 				mqplib->logger ("XDS Decode of Header Failed: %d", rc);
 			print_decode(mqp, 1);

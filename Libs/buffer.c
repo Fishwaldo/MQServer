@@ -133,7 +133,11 @@ mqbuffer_add(struct mqbuffer *buf, u_char *data, size_t datlen)
 
 	memcpy(buf->buffer + buf->off, data, datlen);
 	buf->off += datlen;
-
+ 	buf->buffer[buf->off] = '\0'; 
+#ifdef PACKDEBUG
+printf("MyBUF\n%s\nENDBUF\n", buf->buffer);
+printf("LASTCHAR: %c (%d)\n", buf->buffer[buf->off], buf->buffer[buf->off]);
+#endif
 	if (datlen && buf->cb != NULL)
 		(*buf->cb)(buf, oldoff, buf->off, buf->cbarg);
 
@@ -150,7 +154,7 @@ mqbuffer_drain(struct mqbuffer *buf, size_t len)
 		goto done;
 	}
 
-	memmove(buf->buffer, buf->buffer + len, buf->off - len);
+	memmove(buf->buffer, buf->buffer + len, (buf->off+1) - len);
 	buf->off -= len;
 
  done:
