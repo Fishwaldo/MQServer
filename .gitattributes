@@ -1,4 +1,8 @@
 * text=auto !eol
+Client/Makefile.am -text
+Client/Makefile.in -text
+Client/hash.c -text
+Client/list.c -text
 Client/testclient.c -text
 Include/client.h -text
 Include/conf.h -text
