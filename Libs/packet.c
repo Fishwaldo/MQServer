@@ -174,7 +174,7 @@ pck_find_mid_node (unsigned long MID, list_t * queue)
 mqpacket *
 pck_create_mqpacket (int type, xds_mode_t direction)
 {
-	int i;
+	int i, rc;
 	mqpacket *mqpck;
 	
 	mqpck = malloc (sizeof (mqpacket));
@@ -188,7 +188,12 @@ pck_create_mqpacket (int type, xds_mode_t direction)
 	switch (type) {
 	case ENG_TYPE_XDR:
 		while (i < NUMENGINES) {
-			if (xds_register (mqpck->xds, dec_xdr_engines[i].myname, dec_xdr_engines[i].ptr, NULL) != XDS_OK) {
+			if (direction == XDS_ENCODE) {
+				rc = xds_register (mqpck->xds, enc_xdr_engines[i].myname, enc_xdr_engines[i].ptr, NULL);
+			} else {
+				rc = xds_register (mqpck->xds, dec_xdr_engines[i].myname, dec_xdr_engines[i].ptr, NULL);
+			}
+			if (rc != XDS_OK) {
 				if (mqpconfig.logger)
 					mqpconfig.logger ("xds_register failed for %s", dec_xdr_engines[i].myname);
 				xds_destroy (mqpck->xds);
@@ -200,7 +205,12 @@ pck_create_mqpacket (int type, xds_mode_t direction)
 		return mqpck;
 	case ENG_TYPE_XML:
 		while (i < NUMENGINES - 1) {
-			if (xds_register (mqpck->xds, dec_xml_engines[i].myname, dec_xml_engines[i].ptr, NULL) != XDS_OK) {
+			if (direction == XDS_ENCODE) {
+				rc = xds_register (mqpck->xds, enc_xml_engines[i].myname, enc_xml_engines[i].ptr, NULL);
+			} else {
+				rc = xds_register (mqpck->xds, dec_xml_engines[i].myname, dec_xml_engines[i].ptr, NULL);
+			}				
+			if (rc != XDS_OK) {
 				if (mqpconfig.logger)
 					mqpconfig.logger ("xds_register failed for %s", dec_xml_engines[i].myname);
 				xds_destroy (mqpck->xds);
@@ -236,7 +246,7 @@ pck_destroy_mqpacket (mqpacket * mqpck, mqprotocol * mqp)
 			lnode_destroy (node);
 		}
 	}
-	free (mqpck->data);
+//	if (mqpck->data) free (mqpck->data);
 	xds_destroy (mqpck->xds);
 	free (mqpck);
 
@@ -339,15 +349,17 @@ read_fd (int fd, void *arg)
 		} else {
 			buffer_add (mqp, buf, i);
 		}
-
-		i = pck_parse_packet (mqp, mqp->buffer, mqp->offset);
-		if (mqpconfig.logger)
-			mqpconfig.logger ("processed %d bytes %d left", i, mqp->offset);
-		if (i > 0) {
-			buffer_del (mqp, i);
-		} else if (i == -1) {
-			close_fd (fd, mqp);
-			return NS_FAILURE;
+		/* don't process packet till its authed */
+		if (MQP_IS_AUTHED(mqp)) {
+			i = pck_parse_packet (mqp, mqp->buffer, mqp->offset);
+			if (mqpconfig.logger)
+				mqpconfig.logger ("processed %d bytes %d left", i, mqp->offset);
+			if (i > 0) {
+				buffer_del (mqp, i);
+			} else if (i == -1) {
+				close_fd (fd, mqp);
+				return NS_FAILURE;
+			}
 		}
 	} else {
 		if (mqpconfig.logger)
@@ -423,7 +435,7 @@ write_fd (int fd, mqprotocol * mqp)
 	int i;
 	lnode_t *node;
 	mqpacket *mqpacket;
-	if (mqp) {
+	if (!mqp) {
 		node = pck_find_fd_node (fd, connections);
 		if (node) {
 			mqp = lnode_get (node);
@@ -433,17 +445,24 @@ write_fd (int fd, mqprotocol * mqp)
 			return NS_FAILURE;
 		}
 	}
+	/* ok, first we figure out what stage we are at */
+	if (MQP_IS_CLIENT(mqp) && !MQP_IS_SETUP(mqp)) {
+		if (mqpconfig.logger)
+			mqpconfig.logger ("send SRVCAP");
+		pck_send_srvcap(mqp);
+		mqp->pollopts |= POLLIN;
+	}
 
 	if (mqp->outbufferlen > 0) {
 		i = write (mqp->sock, mqp->outbuffer, mqp->outbufferlen);
 		if (i == mqp->outbufferlen) {
 			free (mqp->outbuffer);
 			mqp->outbufferlen = mqp->outoffset = 0;
-			mqp->pollopts |= ~POLLOUT;
+			mqp->pollopts &= ~POLLOUT;
 		} else if (i > 0) {
 			memmove (mqp->outbuffer, mqp->outbuffer + i, mqp->outoffset - i);
 			mqp->outoffset = mqp->outoffset - i;
-			mqp->pollopts = POLLOUT;
+			mqp->pollopts |= POLLOUT;
 		} else {
 			/* something went wrong sending the data */
 			if (mqpconfig.logger)
@@ -465,11 +484,11 @@ write_fd (int fd, mqprotocol * mqp)
 			if (i == mqp->outbufferlen) {
 				free (mqp->outbuffer);
 				mqp->bufferlen = mqp->offset = 0;
-				mqp->pollopts |= ~POLLOUT;
+				mqp->pollopts &= ~POLLOUT;
 			} else if (i > 0) {
 				memmove (mqp->outbuffer, mqp->outbuffer + i, mqp->outoffset - i);
 				mqp->outoffset = mqp->outoffset - i;
-				mqp->pollopts &= POLLOUT;
+				mqp->pollopts |= POLLOUT;
 			} else {
 				/* something went wrong sending the data */
 				if (mqpconfig.logger)
@@ -504,9 +523,10 @@ pck_before_poll (struct pollfd ufds[MAXCONNECTIONS])
 			ufds[count].fd = mqp->sock;
 			ufds[count].events = mqp->pollopts;
 			count++;
-			node = list_next (connections, node);
 		}
+		node = list_next (connections, node);
 		if (count == (MAXCONNECTIONS -1)) {
+			printf("count %d\n", count);
 			break;
 		}
 	}
@@ -636,9 +656,9 @@ pck_accept_connection (int fd)
 			close_fd (l, mqp);
 		}
 	} else {
-		mqp->flags = MQP_CLIENTAUTHED;
+		MQP_SET_AUTHED(mqp);
 	}
-	mqp->pollopts |= POLLIN;
+	mqp->pollopts |= POLLOUT;
 	return l;
 }
 
@@ -667,7 +687,8 @@ pck_make_connection (struct sockaddr_in sa, void *cbarg)
 	}
 	mqp = pck_new_conn (cbarg, PCK_IS_SERVER);
 	mqp->sock = s;
-	mqp->flags = 0;
+	/* outgoing connections are always authed */
+	MQP_SET_AUTHED(mqp);
 	mqp->pollopts |= POLLOUT;
 	return s;
 }

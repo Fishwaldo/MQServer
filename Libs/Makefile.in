@@ -145,7 +145,7 @@ xds_uint8_t = @xds_uint8_t@
 lib_LTLIBRARIES = libmqpacket.la
 libmqpacket_la_SOURCES = packet.c decodepacket.c encodepacket.c encode.c \
 			xds.c xds_engine_xdr.c xds_engine_xml.c xds_version.c \
-			xds_engine_xdr_mqs.c
+			xds_engine_xdr_mqs.c protocol.c
 
 LINK = @echo "Linking $@"; $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
         $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -161,7 +161,7 @@ libmqpacket_la_LDFLAGS =
 libmqpacket_la_LIBADD =
 am_libmqpacket_la_OBJECTS = packet.lo decodepacket.lo encodepacket.lo \
 	encode.lo xds.lo xds_engine_xdr.lo xds_engine_xml.lo \
-	xds_version.lo xds_engine_xdr_mqs.lo
+	xds_version.lo xds_engine_xdr_mqs.lo protocol.lo
 libmqpacket_la_OBJECTS = $(am_libmqpacket_la_OBJECTS)
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)/Include
@@ -169,8 +169,8 @@ depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
 @AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/decodepacket.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/encode.Plo ./$(DEPDIR)/encodepacket.Plo \
-@AMDEP_TRUE@	./$(DEPDIR)/packet.Plo ./$(DEPDIR)/xds.Plo \
-@AMDEP_TRUE@	./$(DEPDIR)/xds_engine_xdr.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/packet.Plo ./$(DEPDIR)/protocol.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/xds.Plo ./$(DEPDIR)/xds_engine_xdr.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/xds_engine_xdr_mqs.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/xds_engine_xml.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/xds_version.Plo
@@ -233,6 +233,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/encode.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/encodepacket.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/packet.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/protocol.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xds.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xds_engine_xdr.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xds_engine_xdr_mqs.Plo@am__quote@

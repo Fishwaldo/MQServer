@@ -27,6 +27,7 @@ Libs/decodepacket.c -text
 Libs/encode.c -text
 Libs/encodepacket.c -text
 Libs/packet.c -text
+Libs/protocol.c -text
 Libs/xds.c -text
 Libs/xds_engine_xdr.c -text
 Libs/xds_engine_xdr_mqs.c -text

@@ -46,7 +46,15 @@
 list_t *connections;
 
 
-#define MQP_CLIENTAUTHED 0x01;
+#define MQP_CLIENTAUTHED 0x01
+#define MQP_CLIENTSETUP 0x02
+
+#define MQP_IS_AUTHED(x) (x->flags & MQP_CLIENTAUTHED)
+#define MQP_SET_AUTHED(x) (x->flags |= MQP_CLIENTAUTHED)
+
+#define MQP_IS_SETUP(x) ((x->flags & MQP_CLIENTSETUP) && (x->flags & MQP_CLIENTAUTHED))
+#define MQP_SET_SETUP(x) (x->flags |= MQP_CLIENTSETUP)
+
 
 
 /* client protocol struct */
@@ -81,9 +89,13 @@ struct mqpconfig {
 } mqpconfig; 	 
 
 /* server or client or repl flags mqprotocol->servorclnt */
-#define PCK_IS_CLIENT	1
-#define PCK_IS_SERVER	2
-#define PCK_IS_REPL	3
+#define PCK_IS_CLIENT	0x1
+#define PCK_IS_SERVER	0x2
+#define PCK_IS_REPL	0x4
+
+#define MQP_IS_CLIENT(x) (x->servorclnt & PCK_IS_CLIENT)
+#define MQP_IS_SERVER(x) (x->servorclnt & PCK_IS_SERVER)
+#define MQP_IS_REPL(x) (x->servorclnt & PCK_IS_REPL)
 
 /* individual packets struct */
 typedef struct mqpacket {
@@ -124,7 +136,7 @@ typedef struct mqpacket {
 
 
 /* encoding engine structs */
-#define NUMENGINES 9	
+#define NUMENGINES 9
 
 #define ENG_TYPE_XDR 1
 #define ENG_TYPE_XML 2
@@ -154,6 +166,10 @@ int pck_parse_packet(mqprotocol *mqp, u_char *buffer, unsigned long buflen);
 void pck_destroy_mqpacket(mqpacket *mqpck, mqprotocol *mqp);
 mqpacket *pck_create_mqpacket(int type, xds_mode_t direction);
 lnode_t *pck_find_mid_node(unsigned long MID, list_t *queue);
+mqpacket *pck_new_packet (int msgtype, unsigned long flags);
+unsigned long pck_commit_data (mqprotocol * mqp, mqpacket * mqpck);
+
+
 
 /* these are error defines */
 #define PCK_ERR_BUFFULL		1

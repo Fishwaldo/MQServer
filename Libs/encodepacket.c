@@ -48,16 +48,16 @@ pck_new_packet (int msgtype, unsigned long flags)
 	mqpacket *mqpck;
 
 	mqpck = pck_create_mqpacket (ENG_TYPE_XDR, XDS_ENCODE);
+	if (mqpck == NULL)
+		return NULL;
 	/* MID is null till we send, this way we can reuse this packet def */
 	mqpck->MID = -1;
 	mqpck->MSGTYPE = msgtype;
 	mqpck->flags = flags;
 	mqpck->dataoffset = 0;
 	mqpck->data = NULL;
-#ifdef DEBUG
 	if (mqpconfig.logger)
-		mqpconfig.logger ("Created a New Packet with MID %lu", mqpck->MID);
-#endif
+		mqpconfig.logger ("Created a New Packet with MID %d", mqpck->MID);
 	return mqpck;
 }
 
@@ -86,20 +86,29 @@ pck_commit_data (mqprotocol * mqp, mqpacket * mqpck)
 			mqpconfig.logger ("OutBuffer is Full.");
 		return NS_FAILURE;
 	}
+	if (mqpck == NULL) {
+		if (mqpconfig.logger)
+			mqpconfig.logger("pck_commit_data was empty");
+		return NS_FAILURE;
+	}
+	
 	/* we are always at version one atm */
 	mqpck->VERSION = 1;
 	/* increment the mid */
 	mqpck->MID = mqp->nxtoutmid++;
+	
+	rc = xds_encode (mqpck->xds, "mqpheader", &mqpck);
 
-	if (xds_encode (mqpck->xds, "mqpheader", &mqpck) != XDS_OK) {
+	if (rc != XDS_OK) {
 		if (mqpconfig.logger)
-			mqpconfig.logger ("OutBuffer is Full.");
+			mqpconfig.logger ("xds encode header failed %d.", rc);
 		pck_destroy_mqpacket (mqpck, NULL);
 		return -1;
 	}
-	if (xds_getbuffer (mqpck->xds, XDS_GIFT, (void **) &mqpck->data, mqpck->dataoffset) != XDS_OK) {
+	rc = xds_getbuffer (mqpck->xds, XDS_GIFT, (void **) &mqpck->data, &mqpck->dataoffset) ;
+	if (rc != XDS_OK) {
 		if (mqpconfig.logger)
-			mqpconfig.logger ("OutBuffer is Full.");
+			mqpconfig.logger ("OutBuffer is Full. %d", rc);
 		pck_destroy_mqpacket (mqpck, NULL);
 		return -1;
 	}
