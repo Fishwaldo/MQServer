@@ -30,6 +30,7 @@
 #include "event.h"
 #include "list.h"
 #include "packet.h"
+#include "adns.h"
 
 typedef struct mqclient {
 	int fd;
@@ -102,6 +103,10 @@ typedef struct mqclient {
 #define MQC_SET_TYPE_REPL(x) x->type = MQC_TYPE_REPL
 #define MQC_IS_TYPE_REPL(x) (x->type & MQC_TYPE_REPL)
 #define MQC_CLEAR_TYPE_REPL(x) (x->type &= MQC_TYPE_REPL)
+
+/* this is the dns structure */
+extern adns_state ads;
+
 
 
 mqclient *new_client(int);

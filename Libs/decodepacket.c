@@ -37,7 +37,6 @@
 #include "defines.h"
 #include "list.h"
 #include "packet.h"
-#include "getchar.h"
 #include "xds.h"
 
 

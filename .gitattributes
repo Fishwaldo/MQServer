@@ -16,6 +16,7 @@ Include/version.h -text
 Include/xds.h.in -text
 Include/xds_engine_xdr_mqs.h -text
 Include/xds_p.h -text
+Libs/Makefile.am -text
 Libs/Makefile.in -text
 Libs/decodepacket.c -text
 Libs/encode.c -text
@@ -26,6 +27,7 @@ Libs/xds_engine_xdr.c -text
 Libs/xds_engine_xdr_mqs.c -text
 Libs/xds_engine_xml.c -text
 Libs/xds_version.c -text
+/Makefile.am -text
 /Makefile.in -text
 Server/Makefile.in -text
 Server/client.c -text
@@ -60,6 +62,7 @@ adns/types.c -text
 /config.sub -text
 /configure -text
 /configure.in -text
+/depcomp -text
 /install-sh -text
 libevent/Makefile.am -text
 libevent/Makefile.in -text
@@ -104,8 +107,12 @@ libevent/test/test-init.c -text
 libevent/test/test-time.c -text
 libevent/test/test-weof.c -text
 libevent/test/test.sh -text
+/ltmain.sh -text
+/missing -text
+/mkinstalldirs -text
 /mqprotocol.txt -text
 /mqserver.cfg -text
+/rules.mk -text
 sqlite/Makefile.in -text
 sqlite/Makefile.linux-gcc -text
 sqlite/README -text
@@ -293,3 +300,5 @@ sqlite/www/sqlite.tcl -text
 sqlite/www/tclsqlite.tcl -text
 sqlite/www/vdbe.tcl -text
 sqlite/www/whentouse.tcl -text
+/subdirconfig.m4 -text
+/xds.m4 -text

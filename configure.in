@@ -1,5 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(Server/main.c)
+
 AC_CONFIG_HEADER(Include/config.h)
 PACKAGE=MQServer
 MAJOR=0
@@ -10,35 +11,9 @@ AC_DEFINE_UNQUOTED(MINOR, $MINOR)
 AC_DEFINE_UNQUOTED(REV, $REV)
 VERSION=$MAJOR.$MINOR.$REV
 AC_DEFINE_UNQUOTED(MQSERVER_PACKAGE_VERSION, "$VERSION")
+AM_INIT_AUTOMAKE("MQServer", "0.0.1")
+AC_PROG_LIBTOOL
 
-dnl Get system type
-AC_CANONICAL_HOST
-MYHOST=$host_os
-case "$host_os" in
-*cygwin)
-	CFLAGS="$CFLAGS -O2 -g"
-	LDFLAGS="$LDFLAGS -export-dynamic";;
-*mingw32)
-	CFLAGS="$CFLAGS -O2 -g -mno-cygwin"
-	LDFLAGS="$LDFLAGS -export-dynamic";;
-*openbsd)
-	CFLAGS="$CFLAGS -O2 -g -fPIC -DPIC"
-	LDFLAGS="-export-dynamic";;
-*)
-	CFLAGS="$CFLAGS -O2 -g -fPIC -DPIC"
-	LDFLAGS="-rdynamic";;	
-esac
-
-case "$host_os" in
-*openbsd*)
-	MAKEDEPENDENCIES="";;
-*freebsd*)
-	MAKEDEPENDENCIES="";;
-*)
-	MAKEDEPENDENCIES="-include \$(OBJS:.o=.d)";;
-esac
-
-dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL 
 AC_CACHE_SAVE
@@ -100,31 +75,10 @@ AC_MSG_RESULT(no)
 
 AC_CACHE_SAVE
 
-dnl Set NEO_PREFIX in config.h.
-if test "x${prefix}" = "xNONE"; then
-   AC_DEFINE_UNQUOTED(NEO_PREFIX, "${ac_default_prefix}")
-else
-  AC_DEFINE_UNQUOTED(NEO_PREFIX, "${prefix}")
-fi
-
 AC_XDS
 NEO_SUBDIR_CONFIG(libevent, [--disable-shared --enable-static])
 NEO_SUBDIR_CONFIG(sqlite, [--enable-static --disable-shared --enable-tempdb-in-ram --enable-incore-db])
 
-AC_SUBST(LIBDB)
-AC_SUBST(MAKEDEPENDENCIES)
-AC_SUBST(DIRINST)
-AC_SUBST(CFLAGS)
-AC_SUBST(LDFLAGS)
-AC_SUBST(MODLDFLAGS)
-AC_SUBST(LINK_SIZE)
-AC_SUBST(MATCH_LIMIT)
-AC_SUBST(NEWLINE)
-AC_SUBST(UTF8)
-
-AC_SUBST(LIBS)
-AC_SUBST(PACKAGE)
-AC_SUBST(VERSION)
 AC_OUTPUT(Makefile Server/Makefile Libs/Makefile Include/xds.h)
 echo "(*----------------------------------------------------------*)"
 echo "(| Important Instructions                                   |)"

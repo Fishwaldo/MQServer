@@ -46,7 +46,6 @@
 #include <sys/resource.h>
 #include <setjmp.h>
 #include <assert.h>
-#include "event.h"
 #include "config.h"
 
 #ifdef HAVE_DB_H
@@ -67,7 +66,6 @@
 
 #include "list.h"
 #include "hash.h"
-#include "adns.h"
 
 #ifdef MQSERVER_REVISION
 #define MQSERVER_VERSION MQSERVER_PACKAGE_VERSION " (" MQSERVER_REVISION ")"
@@ -176,9 +174,6 @@ typedef enum {
 extern char segv_location[SEGV_LOCATION_BUFSIZE];
 extern char segv_inmodule[SEGV_INMODULE_BUFSIZE];
 extern jmp_buf sigvbuf;
-
-/* this is the dns structure */
-extern adns_state ads;
 
 
 /* version info */

@@ -46,6 +46,56 @@ int listen_on_port (int port);
 int pck_accept_connection (int fd);
 
 
+
+myengines enc_xdr_engines[NUMENGINES] = {
+	{ xdr_encode_uint32, "uint32" },
+	{ xdr_encode_int32, "int32" },
+	{ xdr_encode_uint64, "unit64" },
+	{ xdr_encode_int64, "int64" },
+	{ xdr_encode_float, "float" },
+	{ xdr_encode_double, "double" },
+	{ xdr_encode_octetstream, "octet" },
+	{ xdr_encode_string, "string" },
+	{ encode_mqs_header, "mqpheader" },
+};
+
+myengines dec_xdr_engines[NUMENGINES] = {
+	{ xdr_decode_uint32, "uint32" },
+	{ xdr_decode_int32, "int32" },
+	{ xdr_decode_uint64, "unit64" },
+	{ xdr_decode_int64, "int64" },
+	{ xdr_decode_float, "float" },
+	{ xdr_decode_double, "double" },
+	{ xdr_decode_octetstream, "octet" },
+	{ xdr_decode_string, "string" },
+	{ decode_mqs_header, "mqpheader" },
+};
+
+myengines enc_xml_engines[NUMENGINES] = {
+	{ xml_encode_uint32, "uint32" },
+	{ xml_encode_int32, "int32" },
+	{ xml_encode_uint64, "unit64" },
+	{ xml_encode_int64, "int64" },
+	{ xml_encode_float, "float" },
+	{ xml_encode_double, "double" },
+	{ xml_encode_octetstream, "octet" },
+	{ xml_encode_string, "string" },
+};
+
+myengines dec_xml_engines[NUMENGINES] = {
+	{ xml_decode_uint32, "uint32" },
+	{ xml_decode_int32, "int32" },
+	{ xml_decode_uint64, "unit64" },
+	{ xml_decode_int64, "int64" },
+	{ xml_decode_float, "float" },
+	{ xml_decode_double, "double" },
+	{ xml_decode_octetstream, "octet" },
+	{ xml_decode_string, "string" },
+};
+
+
+
+
 void
 pck_init ()
 {
