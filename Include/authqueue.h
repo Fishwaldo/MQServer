@@ -23,44 +23,9 @@
 ** $Id: client.h 23 2004-07-27 10:57:56Z Fish $
 */
 
-#ifndef MYTHREAD_H
-#define MYTHREAD_H
-#include "config.h"
-#include "defines.h"
-#include "list.h"
+#ifndef AUTHQUEUE_H
+#define AUTHQUEUE_H
 
-
-list_t *threads;
-
-
-
-typedef struct locks {
-	pthread_mutex_t lock;        
-        char who[BUFSIZE];         
-        long thread;
-	char name[BUFSIZE];
-} mylocks;
-
-typedef struct mythreads {
-	long tid;
-	char name[BUFSIZE];
-} mythreads;	
-
-mylocks mythreadengine;
-
-
-#define MYLOCK(x) mylock_(x, __FILE__, __FUNCTION__)
-#define MYUNLOCK(x) myunlock_(x, __FILE__, __FUNCTION__)
-#define MYLOCK_INIT(x) pthread_mutex_init(&x.lock, NULL)
-
-void mylock_(mylocks *, char *, char *);
-void myunlock_(mylocks *, char *, char *);
-
-char *get_thread_name(long tid);
-int destroy_thread();
-int create_thread(char *name, void *(*start)(void *), void *arg);
-int thread_created(char *name);
-int init_threadengine();
-int count_threads(char *);
+void *init_authqueue(void *arg);
 
 #endif

@@ -202,6 +202,9 @@ struct me {
 	char strnow[STR_TIME_T_SIZE];
 	char version[VERSIONSIZE];
 	char versionfull[VERSIONSIZE];
+	int authqthreshold;
+	int authqmaxthreads;
+	int authqtimeout;
 } me;
 
 /* conf.c */

@@ -37,7 +37,7 @@
 #include "packet.h"
 #include "serversock.h"
 #include "mythread.h"
-
+#include "queuemanager.h"
 
 /*! Date when we were compiled */
 const char version_date[] = __DATE__;
@@ -122,6 +122,11 @@ main (int argc, char *argv[])
 #endif
 	me.r_time = 10;
 
+	/* XXX */
+	me.authqthreshold = 5;
+	me.authqmaxthreads = 5;	
+	me.authqtimeout = 10;
+
 	/* prepare to catch errors */
 	setup_signals ();
 
@@ -142,6 +147,10 @@ main (int argc, char *argv[])
 	if(init_dns () != NS_SUCCESS)
 		return EXIT_FAILURE;
 
+	/* init the queue manager */
+	if (queueman_init() != NS_SUCCESS)
+		return EXIT_FAILURE;
+		
 
 #if 0
 	/* if we are compiled with debug, or forground switch was specified, DONT FORK */

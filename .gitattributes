@@ -6,6 +6,8 @@ Client/list.c -text
 Client/testclient.c -text
 Client/testserver.c -text
 Include/admincli.h -text
+Include/authqueue.h -text
+Include/callback.h -text
 Include/client.h -text
 Include/conf.h -text
 Include/config.h.in -text
@@ -20,6 +22,7 @@ Include/list.h -text
 Include/log.h -text
 Include/mythread.h -text
 Include/packet.h -text
+Include/queuemanager.h -text
 Include/serversock.h -text
 Include/sock.h -text
 Include/tcprioq.h -text
@@ -44,6 +47,7 @@ Libs/xds_version.c -text
 Server/Makefile.am -text
 Server/Makefile.in -text
 Server/admincli.c -text
+Server/authqueue.c -text
 Server/callback.c -text
 Server/client.c -text
 Server/conf.c -text
@@ -57,6 +61,7 @@ Server/log.c -text
 Server/main.c -text
 Server/mythread.c -text
 Server/prioq.c -text
+Server/queuemanager.c -text
 Server/serversock.c -text
 /aclocal.m4 -text
 adns/Makefile -text

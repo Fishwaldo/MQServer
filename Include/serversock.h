@@ -38,6 +38,7 @@ typedef struct mqss {
 	int xdrport;
 	int xmlport;
 	int adminport;
+	unsigned long nxtconid;
 } mqss;
 
 mqss mqssetup;
@@ -45,7 +46,7 @@ mqss mqssetup;
 typedef struct mqsock {
 	mqpacket *mqp;
 	char host[MAXHOST];
-	long connectid;
+	unsigned long connectid;
 	struct sockaddr_in ip;
 	long status;
 	long type;
@@ -129,6 +130,6 @@ typedef struct mqsock {
 
 
 void MQS_sock_start ();
-
+extern mqsock *find_con_by_id(int id);
 
 #endif

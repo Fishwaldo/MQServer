@@ -89,7 +89,31 @@ void spawn_admin_thread(mqsock *mqs) {
 	create_thread("AdminCLI", init_admin_cli, (void *)mqs->data.fd);
 }
 
+static int compare_conid(const void *arg1, const void *arg2) {
+	mqsock *mqs = (mqsock *)arg1;
+	int conid = (int)arg2;
+printf("%d - %d\n", mqs->connectid, conid);
+	if (mqs->connectid == conid) {
+		return 0;
+	} else {
+		return -1;
+	}
+}
 
+extern mqsock *find_con_by_id(int id) {
+	lnode_t *node;
+	mqsock *mqs;
+	node = list_find(mqssetup.connections, (void *)id, compare_conid);
+	if (node) {
+		mqs = lnode_get(node);
+		if (!mqs->mqp) {
+			printf("hrm, mqp missing\n");
+		}
+printf("return ok\n");
+		return lnode_get(node);
+	} 
+	return NULL;
+}
 
 void MQS_listen_accept(int fd, short eventtype, void *arg) {
         unsigned int al;
@@ -127,6 +151,7 @@ void MQS_listen_accept(int fd, short eventtype, void *arg) {
 	newmqs->ip = client_address;
 	strncpy(newmqs->host, inet_ntoa(client_address.sin_addr), MAXHOST);
 	newmqs->data.fd = l;
+	newmqs->connectid = mqssetup.nxtconid++;
 	nlog(LOG_DEBUG1, LOG_CORE, "New Connection from %s on fd %d", newmqs->host, newmqs->data.fd);
 	/* start DNS lookup */
 	do_reverse_lookup(newmqs);
@@ -186,6 +211,7 @@ MQS_sock_start ()
 	mqssetup.xdrport = 8888;
 	mqssetup.xmlport = 8889;
 	mqssetup.adminport = 8887;
+	mqssetup.nxtconid = 0;
 
 	if (MQS_listen_on_port(mqssetup.xdrport, MQC_TYPE_LISTEN_XDR) != NS_SUCCESS) {
 		do_exit(NS_EXIT_ERROR, "Can't Create Client Port");
@@ -214,6 +240,10 @@ MQS_sock_start ()
 /* 		setup_dns_socks(); */
 
 		event_loop(EVLOOP_ONCE);
+		
+		/* check our queues */
+		check_authq();	
+	
 		if (me.die) {
 			do_exit(NS_EXIT_NORMAL, "Normal Exit");
 		}

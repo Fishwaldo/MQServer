@@ -147,6 +147,26 @@ char *get_thread_name(long tidnum) {
 	return NULL;
 }
 
+int count_threads(char *name) {
+	lnode_t *node;
+	mythreads *tid;
+	int i = 0;
+	
+	if (name) {
+		node = list_first(threads);
+		while (node) {
+			tid = lnode_get(node);
+			if (!strcasecmp(tid->name, name)) {
+				i++;
+			}
+			node = list_next(threads, node);
+		}
+		return i;
+	} else {
+		return (int) list_count(threads);
+	}
+	return 0;
+}
 
 int destroy_thread() {
     	mythreads *tid;
