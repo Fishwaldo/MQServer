@@ -29,6 +29,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <stdio.h>
+#define READLINE_CALLBACKS 1;
+#include <readline/readline.h>
+#include <readline/history.h>
+#include <ncurses.h>
+#include <term.h>
                      
 #include "defines.h"
 #include "packet.h"
@@ -70,6 +76,10 @@ structentry testdataentry[] = {
 };
 testdata *tmp;
 testdata *tmp2;
+int queueok;
+WINDOW *dbgwin;
+WINDOW *msgwin;
+WINDOW *sndwin;
 	
 					
 void *readstr(void *data, size_t *size) {
@@ -78,38 +88,83 @@ void *readstr(void *data, size_t *size) {
 	return tmp->name;
 }
 
+
+void readlinecallback(char *string) {
+	if (!strcasecmp(string, "quit")) {
+		endwin();
+		exit(1);
+	}
+	printf("send\n");
+	snprintf(tmp->name, 512, "%s", string);
+	pck_simple_send_message_struct(conid, &testdataentry, (sizeof(testdataentry)/sizeof(structentry)), tmp, "testqueue", "MyTopic");
+}
+
+
 int gotaction(int type, void *cbarg) {
 	mq_data_joinqueue *qi;
 	mq_data_senddata *sd;
+	char prompt[512];
 	switch (type) {
 		case PCK_SMP_LOGINOK:
+			printf("Login Accepted\n");
 			pck_simple_joinqueue(conid, "testqueue", 0, "*");
 			break;
 		case PCK_SMP_QUEUEINFO:
 			qi = pck_get_queueinfo(conid);
-			printf("queue info: %s %d %s\n", qi->queue, qi->flags, qi->filter);
+			printf("Queue info: %s %ld %s\n", qi->queue, qi->flags, qi->filter);
 			pck_simple_send_message_struct(conid, &testdataentry, (sizeof(testdataentry)/sizeof(structentry)), tmp, "testqueue", "Mytopic");
+			snprintf(prompt, 512, "Queue %s>", qi->queue);
+			rl_callback_handler_install(prompt, readlinecallback);
+			queueok = 1;
 			break;
 		case PCK_SMP_MSGFROMQUEUE:
 			sd = pck_get_msgfromqueue(conid);
 			tmp2 = malloc(sizeof(testdata));
 			pck_decode_message(sd, testdataentry,(sizeof(testdataentry)/sizeof(structentry)), tmp2);
-			printf("queue %s topic %s messid %d time %d from %s\n", sd->queue, sd->topic, sd->messid, sd->timestamp, sd->from);
-			printf("got %s %d %s\n", tmp2->name, tmp2->size, tmp2->testdata);
+			printf("Msg: Queue: %s topic %s messid %d time %d from %s\n", sd->queue, sd->topic, sd->messid, sd->timestamp, sd->from);
+			printf("Msg: %s %ul %s\n", tmp2->name, tmp2->size, tmp2->testdata);
 			tmp->size++;
-			pck_simple_send_message_struct(conid, &testdataentry, (sizeof(testdataentry)/sizeof(structentry)), tmp, "testqueue", "Mytopic");
+/* 			pck_simple_send_message_struct(conid, &testdataentry, (sizeof(testdataentry)/sizeof(structentry)), tmp, "testqueue", "Mytopic"); */
 			free(tmp2->name);
 			free(tmp2);
 			if (tmp->size == -1) {
 				candie = 1; 
 			}
 	}			
-
+	return 0;
 }
 int main() {
 	int rc = 1;
 	int ok = 0;
 	
+         fd_set rfds;
+         struct timeval tv;
+         int retval;
+         queueok =0;                       
+         /* Watch stdin (fd 0) to see when it has input. */
+         FD_ZERO(&rfds);
+         FD_SET(0, &rfds);
+         /* Wait up to one seconds. */
+         tv.tv_sec = 0;
+         tv.tv_usec = 0;
+#if 0
+         initscr();
+//	cbreak();
+	keypad(stdscr, TRUE);
+
+	dbgwin = newwin(10, 80, 0, 0);
+	msgwin = newwin(10, 80, 10, 0);
+	sndwin = newwin(10, 80, 20, 0);
+	box(dbgwin, 0, 0);
+	box(msgwin, 0, 0);
+	box(sndwin, 0, 0);
+	wrefresh(dbgwin);
+	wrefresh(msgwin);
+	wrefresh(sndwin);
+//	refresh();
+//	printw("Press F1 to exit");
+#endif
+                                                                                          
 #if 0
 	init_socket();
 	debug_socket(1);
@@ -122,16 +177,42 @@ int main() {
 	
 	printf("total size %d\n", (sizeof(testdataentry)/sizeof(structentry)));
 	
+	
 	candie = 0;
+	printf("Connecting.....");
 	conid = pck_make_connection("snoopy", "fish", "haha", 0, NULL, gotaction);
+	printf("Done\n");
 	while (rc == 1) {
 		rc = pck_process();
+#if 0
+		touchwin(stdscr);
+		touchwin(dbgwin);
+		touchwin(msgwin);
+		touchwin(sndwin);
+		wrefresh(dbgwin);
+		wrefresh(msgwin);
+		wrefresh(sndwin);
+//		refresh();
+#endif
+		if (queueok == 1) {
+		         FD_ZERO(&rfds);
+		         FD_SET(0, &rfds);
+	                  retval = select(1, &rfds, NULL, NULL, &tv);
+		         if (retval == -1) {
+	         		perror("select()");
+			} else {
+				if (FD_ISSET(0, &rfds)) {
+					rl_callback_read_char();
+				}
+			}
+		}
 		if (candie == 1)
 			break;
 	}
 	pck_fini();
 	free(tmp->name);
 	free(tmp);
+	endwin();
 }
 
                                                 

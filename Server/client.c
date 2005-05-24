@@ -44,16 +44,16 @@
 
 
 
-void mq_new_client(messqitm *mqi) {
+void mq_new_client(char username[MAXUSER], char host[MAXHOST], int conid) {
 	mqclient *mqc;
 	lnode_t *node;
 	
 	/* create the new client struct */
 	mqc = malloc(sizeof(mqclient));
 	MYLOCK_INIT(mqc->lock);
-	strncpy(mqc->username, mqi->data.new_clnt.username, MAXUSER);
-	strncpy(mqc->host, mqi->data.new_clnt.host, MAXHOST);
-	mqc->clntid = mqi->conid;
+	strncpy(mqc->username, username, MAXUSER);
+	strncpy(mqc->host, host, MAXHOST);
+	mqc->clntid = conid;
 	mqc->queues = hash_create(-1, 0, 0);
 	
 	nlog(LOG_DEBUG1, LOG_AUTHQ, "MQ Created new MQ Client for %s@%s", mqc->username, mqc->host);
@@ -68,7 +68,7 @@ void mq_new_client(messqitm *mqi) {
 
 
 	/* before we return, unlock the client */
-	/* not needed: 	MYUNLOCK(&mqc->lock); */
+	MYUNLOCK(&mqc->lock);
 }
 
 static int compare_mqclient(const void *key1, const void *key2) {

@@ -80,7 +80,7 @@ void *init_messqueue(void *arg) {
 			tcprioq_get(messq->inqueue, (void *)&mqi);
 			switch (mqi->type) {
 				case MQI_TYPE_NEWCLNT:
-					mq_new_client(mqi);
+					nlog(LOG_WARNING, LOG_MESSQ, "Ehhh, NewClient?");
 					break;
 				case MQI_TYPE_DELCLNT:
 					mq_del_client(mqi);

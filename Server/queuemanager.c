@@ -143,12 +143,22 @@ extern int qm_check_authq() {
 
 extern int qm_check_messq() {
 	messqitm *mqi;
-	int i;
+	int i =0;
 	
 	/* lock the authq */
-	pthread_mutex_lock(&messq->mutex);
-	i = tcprioq_items(messq->outqueue);
-	if (i > 0) {
+/* 	pthread_mutex_lock(&messq->mutex); */
+/* 	i = tcprioq_items(messq->outqueue); */
+	while (i != -1) {
+	 	pthread_mutex_lock(&messq->mutex); 
+		i = tcprioq_get(messq->outqueue, (void *)&mqi);
+		pthread_mutex_unlock(&messq->mutex);
+		if (i >= 0) {
+			MQS_Mesq_Callback(mqi);
+			free(mqi);
+		}
+	}
+#if 0
+	while (i <= j) {
 		while (!tcprioq_get(messq->outqueue, (void *)&mqi)) {
 			/* XXX do something */
 			MQS_Mesq_Callback(mqi);
@@ -156,6 +166,7 @@ extern int qm_check_messq() {
 		}	
 	}                                                                                                                                                                                                             
 	pthread_mutex_unlock(&messq->mutex);
+#endif
 	return NS_SUCCESS;
 }
 

@@ -111,7 +111,7 @@ void pck_logger(char *fmt,...) {
 		va_start(ap, fmt);
 		vsnprintf(log_buf, BUFSIZE, fmt, ap);
 		va_end(ap);
-		printf("MQ: %s\n", log_buf);
+//		printf("MQ: %s\n", log_buf);
 	}
 }
 
@@ -120,7 +120,7 @@ int init_socket(actioncbfunc *actioncb) {
 	sockconfig.listenfd = -1;
 	sockconfig.listport = -1;
 	sockconfig.mqplib = init_mqlib();
-	sockconfig.debug = 1;
+	sockconfig.debug = 0;
 	sockconfig.actioncb = actioncb;
 	pck_set_logger(sockconfig.mqplib, pck_logger);		
 	pck_set_callback(sockconfig.mqplib, pck_simple_callback);

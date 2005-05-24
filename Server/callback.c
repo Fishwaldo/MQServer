@@ -81,7 +81,6 @@ int MQS_Auth_Callback(authqitm *aqi) {
 		if (aqi->result == NS_SUCCESS) {
 			MQC_SET_STAT_AUTHOK(mqs);
 			pck_send_ack(mqssetup.mqplib, mqs->mqp, aqi->mid);
-			qm_newclnt(mqs, aqi);
 		} else { 
 			pck_send_error(mqssetup.mqplib, mqs->mqp, "Invalid Username/Password");
 			MQS_remove_client(mqs);

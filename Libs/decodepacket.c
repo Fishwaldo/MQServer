@@ -48,7 +48,9 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp)
 
 	
 	/* XXX XDR engine for now */
+#if 0
 	printf("%d\n", mqp->inbuf->off);
+#endif
 	if (xds_setbuffer (mqp->xdsin, XDS_LOAN, mqp->inbuf->buffer, mqp->inbuf->off) != XDS_OK) {
 		if (mqplib->logger)
 			mqplib->logger ("XDS setbuffer Failed");

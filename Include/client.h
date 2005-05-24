@@ -42,12 +42,12 @@ mylocks mq_clientslock;
 typedef struct mqclient {
 	int clntid;
 	mylocks lock;
-	char username[MAXNICK];
+	char username[MAXUSER];
 	char host[MAXHOST];
 	hash_t *queues;
 } mqclient;
 
-void mq_new_client(messqitm *mqi);
+void mq_new_client(char host[MAXHOST], char user[MAXUSER], int conid);
 void mq_del_client(messqitm *mqi);
 extern mqclient *find_client(int id);
 

@@ -196,7 +196,7 @@ xds_uint32_t = @xds_uint32_t@
 xds_uint64_t = @xds_uint64_t@
 xds_uint8_t = @xds_uint8_t@
 testclient_SOURCES = testclient.c list.c hash.c
-testclient_LDADD = -L$(top_srcdir)/Libs/ -lmqpacket
+testclient_LDADD = -L$(top_srcdir)/Libs/ -lmqpacket -lreadline -lncurses
 AM_CFLAGS = -I$(top_srcdir)/Include -I$(top_srcdir)/adns -I$(top_srcdir)/libevent -DNDEBUG
 LINK = @echo "Linking $@"; $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
         $(AM_LDFLAGS) $(LDFLAGS) -o $@
