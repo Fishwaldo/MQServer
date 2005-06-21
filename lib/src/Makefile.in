@@ -21,7 +21,7 @@ top_srcdir = @top_srcdir@
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
-top_builddir = ..
+top_builddir = ../..
 am__cd = CDPATH="$${ZSH_VERSION+.}$(PATH_SEPARATOR)" && cd
 INSTALL = @INSTALL@
 install_sh_DATA = $(install_sh) -c -m 644
@@ -39,7 +39,7 @@ build_triplet = @build@
 host_triplet = @host@
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(top_srcdir)/rules.mk
-subdir = Libs
+subdir = lib/src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/ax_maintainer_mode_auto_silent.m4 \
 	$(top_srcdir)/subdirconfig.m4 $(top_srcdir)/xds.m4 \
@@ -206,6 +206,7 @@ libmqpacket_la_SOURCES = packet.c decodepacket.c encodepacket.c\
 			xds.c xds_engine_xdr.c xds_engine_xml.c xds_version.c \
 			xds_engine_xdr_mqs.c sock.c buffer.c
 
+INCLUDES = -I../include
 LINK = @echo "Linking $@"; $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
         $(AM_LDFLAGS) $(LDFLAGS) -o $@
 
@@ -222,9 +223,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(top_srcdir
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  Libs/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  lib/src/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  Libs/Makefile
+	  $(AUTOMAKE) --gnu  lib/src/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -348,7 +349,7 @@ distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
 
 distdir: $(DISTFILES)
-	$(mkdir_p) $(distdir)/..
+	$(mkdir_p) $(distdir)/../..
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \

@@ -1,9 +1,4 @@
 * text=auto !eol
-Client/Makefile.am -text
-Client/Makefile.in -text
-Client/hash.c -text
-Client/list.c -text
-Client/testclient.c -text
 Include/admincli.h -text
 Include/authqueue.h -text
 Include/callback.h -text
@@ -64,6 +59,11 @@ adns/transmit.c -text
 adns/tvarith.h -text
 adns/types.c -text
 /ax_maintainer_mode_auto_silent.m4 -text
+clients/Makefile.am -text
+clients/Makefile.in -text
+clients/hash.c -text
+clients/list.c -text
+clients/testclient.c -text
 /config.guess -text
 /config.sub -text
 /configure -text
@@ -76,6 +76,9 @@ confuse/lexer.l -text
 /depcomp -text
 /install-sh -text
 lib/include/buffer.h -text
+lib/include/defines.h -text
+lib/include/packet.h -text
+lib/include/sock.h -text
 lib/include/xds.h -text
 lib/include/xds.h.in -text
 lib/include/xds_engine_xdr_mqs.h -text
@@ -84,12 +87,9 @@ lib/src/Makefile.am -text
 lib/src/Makefile.in -text
 lib/src/buffer.c -text
 lib/src/decodepacket.c -text
-lib/src/defines.h -text
 lib/src/encodepacket.c -text
 lib/src/packet.c -text
-lib/src/packet.h -text
 lib/src/sock.c -text
-lib/src/sock.h -text
 lib/src/xds.c -text
 lib/src/xds_engine_xdr.c -text
 lib/src/xds_engine_xdr_mqs.c -text
