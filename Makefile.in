@@ -199,7 +199,7 @@ xds_uint32_t = @xds_uint32_t@
 xds_uint64_t = @xds_uint64_t@
 xds_uint8_t = @xds_uint8_t@
 AUTOMAKE_OPTIONS = foreign
-SUBDIRS = lib libevent confuse adns Client Server
+SUBDIRS = lib libevent confuse adns clients Server
 ACLOCAL_AMFLAGS = -I .
 LINK = @echo "Linking $@"; $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
         $(AM_LDFLAGS) $(LDFLAGS) -o $@

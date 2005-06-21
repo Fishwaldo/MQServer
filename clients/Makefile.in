@@ -40,7 +40,7 @@ host_triplet = @host@
 bin_PROGRAMS = testclient$(EXEEXT)
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(top_srcdir)/rules.mk
-subdir = Client
+subdir = clients
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/ax_maintainer_mode_auto_silent.m4 \
 	$(top_srcdir)/subdirconfig.m4 $(top_srcdir)/xds.m4 \
@@ -196,8 +196,9 @@ xds_uint32_t = @xds_uint32_t@
 xds_uint64_t = @xds_uint64_t@
 xds_uint8_t = @xds_uint8_t@
 testclient_SOURCES = testclient.c list.c hash.c
-testclient_LDADD = -L$(top_srcdir)/Libs/ -lmqpacket -lreadline -lncurses
+testclient_LDADD = -L$(top_srcdir)/lib/src -lmqpacket -lreadline -lncurses
 AM_CFLAGS = -I$(top_srcdir)/Include -I$(top_srcdir)/adns -I$(top_srcdir)/libevent -DNDEBUG
+INCLUDES = -I$(top_srcdir)/lib/include
 LINK = @echo "Linking $@"; $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
         $(AM_LDFLAGS) $(LDFLAGS) -o $@
 
@@ -214,9 +215,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(top_srcdir
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  Client/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  clients/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  Client/Makefile
+	  $(AUTOMAKE) --gnu  clients/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
