@@ -27,7 +27,9 @@
 #define DEFINES_H
 
 #include <stddef.h>
+#define _GNU_SOURCE
 #include <stdio.h>
+#undef _GNU_SOURCE
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
@@ -35,9 +37,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <time.h>
-#define __USE_GNU
 #include <string.h>
-#undef __USE_GNU
 #include <stdarg.h>
 #include <stdlib.h>
 #include <sys/time.h>

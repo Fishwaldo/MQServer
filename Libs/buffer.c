@@ -26,31 +26,12 @@
  */
 
 
-#define _GNU_SOURCE
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
-#include <sys/types.h>
-
-
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
-#include <err.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#ifdef HAVE_STDARG_H
-#include <stdarg.h>
-#endif
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-
+#include "packet.h"
 #include "buffer.h"
+
 
 struct mqbuffer *
 mqbuffer_new(void)
@@ -66,8 +47,8 @@ void
 mqbuffer_free(struct mqbuffer *buffer)
 {
 	if (buffer->buffer != NULL)
-		free(buffer->buffer);
-	free(buffer);
+		(mqlib_free)(buffer->buffer);
+	(mqlib_free)(buffer);
 }
 
 /* 
@@ -101,7 +82,7 @@ mqbuffer_add_printf(struct mqbuffer *buf, char *fmt, ...)
 	res = strlen(msg);
 	if (mqbuffer_add(buf, msg, res) == -1)
 		res = -1;
-	free(msg);
+	(mqlib_free)(msg);
 
  end:
 	va_end(ap);

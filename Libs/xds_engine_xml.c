@@ -33,6 +33,7 @@
 #include <stdio.h>
 
 #include "xds.h"
+#include "packet.h"
 
 /*
  * Encode/decode XML document framework
@@ -750,7 +751,7 @@ int xml_decode_string(xds_t *xds, void *engine_context,
     /* Allocate target buffer. */
     target_buffer = va_arg(*args, char **);
     xds_check_parameter(target_buffer != NULL);
-    *target_buffer = dst = malloc(src_len + 1);
+    *target_buffer = dst = (mqlib_malloc)(src_len + 1);
     if (dst == NULL)
         return XDS_ERR_NO_MEM;
 
@@ -773,7 +774,7 @@ int xml_decode_string(xds_t *xds, void *engine_context,
                 src_len -= 5;
             }
             else {
-                free(dst);
+                (mqlib_free)(dst);
                 return XDS_ERR_TYPE_MISMATCH;
             }
         }
@@ -1066,14 +1067,14 @@ int xml_decode_octetstream(xds_t *xds, void *engine_context,
     *data_len = base64_decode(NULL, 0, p, p_len);
     if (*data_len == (size_t) - 1)
         return XDS_ERR_UNKNOWN;
-    *data = malloc(*data_len);
+    *data = (mqlib_malloc)(*data_len);
     if (*data == NULL)
         return XDS_ERR_NO_MEM;
     base64_decode(*data, *data_len, p, p_len);
 
     /* Check that we have a closing tag. */
     if (memcmp(p + p_len, "</octetstream>", 14) != 0) {
-        free(*data);
+        (mqlib_free)(*data);
         return XDS_ERR_TYPE_MISMATCH;
     }
 

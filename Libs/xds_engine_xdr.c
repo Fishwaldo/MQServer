@@ -31,7 +31,7 @@
 #include <string.h>
 
 #include "xds.h"
-
+#include "packet.h"
 /*
  * Encode/decode signed 32-bit integer values.
  */
@@ -690,7 +690,7 @@ int xdr_decode_string(xds_t *xds, void *engine_context,
         return XDS_ERR_UNDERFLOW;
 
     /* Allocate buffer for the data. */
-    *p = (char *)malloc(p_len + 1);
+    *p = (char *)(mqlib_malloc)(p_len + 1);
     if (*p == NULL)
         return XDS_ERR_NO_MEM;
 
@@ -772,7 +772,7 @@ int xdr_decode_octetstream(xds_t *xds, void *engine_context,
         return XDS_ERR_UNDERFLOW;
 
     /* Allocate buffer for the data. */
-    *p = malloc(*p_len);
+    *p = (mqlib_malloc)(*p_len);
     if (*p == NULL)
         return XDS_ERR_NO_MEM;
 

@@ -190,6 +190,13 @@ typedef struct {
 
 
 
+/* for malloc/free replacements */
+void *(*mqlib_malloc)(size_t);
+void (*mqlib_free)(void *);
+
+
+
+
 extern int encode_mqs_header (xds_t * xds, void *engine_context, void *buffer, size_t buffer_size, size_t * used_buffer_size, va_list * args);
 extern int decode_mqs_header (xds_t * xds, void *engine_context, void *buffer, size_t buffer_size, size_t * used_buffer_size, va_list * args);
 

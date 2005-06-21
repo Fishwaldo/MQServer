@@ -33,6 +33,7 @@
 #include <errno.h>
 
 #include "xds_p.h"
+#include "packet.h"
 
 int
 xds_init (xds_t ** xds, xds_mode_t mode)
@@ -48,7 +49,7 @@ xds_init (xds_t ** xds, xds_mode_t mode)
 		return XDS_ERR_INVALID_ARG;
 
 	/* Allocate context structure. */
-	if ((ctx = malloc (sizeof (struct xds_context))) == NULL)
+	if ((ctx = (mqlib_malloc) (sizeof (struct xds_context))) == NULL)
 		return XDS_ERR_SYSTEM;	/* errno set by malloc(3) */
 
 	/* Set mode of operation in context. */
@@ -83,16 +84,16 @@ xds_destroy (xds_t * xds)
 	/* Free allocated memory. */
 	assert (xds->buffer != NULL || (xds->buffer_capacity == 0 && xds->buffer_len == 0));
 	if (xds->buffer != NULL && xds->we_own_buffer)
-		free (xds->buffer);
+		(mqlib_free) (xds->buffer);
 	assert (xds->engines != NULL || xds->engines_capacity == 0);
 	if (xds->engines != NULL) {
 		for (i = 0; i < xds->engines_len; i++) {
 			assert (xds->engines[i].name != NULL);
-			free (xds->engines[i].name);
+			(mqlib_free) (xds->engines[i].name);
 		}
-		free (xds->engines);
+		(mqlib_free) (xds->engines);
 	}
-	free (xds);
+	(mqlib_free) (xds);
 
 	return XDS_OK;
 }
@@ -108,7 +109,7 @@ xds_setbuffer (xds_t * xds, xds_scope_t flag, void *buffer, size_t buffer_len)
 
 	/* Free the old buffer if there is one. */
 	if (xds->buffer != NULL && xds->we_own_buffer)
-		free (xds->buffer);
+		(mqlib_free) (xds->buffer);
 	xds->buffer_len = 0;
 
 	if (flag == XDS_GIFT) {
@@ -229,7 +230,7 @@ xds_register (xds_t * xds, const char *name, xds_engine_t engine, void *engine_c
 	/* Search engines for the entry. */
 	if (xds_find_engine (xds->engines, xds->engines_len, name, &pos)) {
 		/* overwrite existing entry */
-		free (xds->engines[pos].name);
+		(mqlib_free) (xds->engines[pos].name);
 	} else {
 		/* insert new entry */
 		int rc = xds_set_capacity ((void **) &xds->engines,
@@ -274,7 +275,7 @@ xds_unregister (xds_t * xds, const char *name)
 	/* Free the memory allocated for this entry and move the entries behind
 	   it back if necessary. */
 	assert (xds->engines[pos].name != NULL);
-	free (xds->engines[pos].name);
+	(mqlib_free) (xds->engines[pos].name);
 	memmove (&xds->engines[pos], &xds->engines[pos + 1], (xds->engines_len - (pos + 1)) * sizeof (engine_map_t));
 	xds->engines_len--;
 
@@ -400,7 +401,7 @@ xds_vencode (xds_t * xds, const char *fmt_arg, va_list args)
 
 	/* Clean up and leave. */
       leave:
-	free (fmt);
+	(mqlib_free) (fmt);
 	if (rc != XDS_OK)
 		xds->buffer_len = buffer_len_backup;
 	return rc;
@@ -477,7 +478,7 @@ xds_vdecode (xds_t * xds, const char *fmt_arg, va_list args)
 
 	/* Clean up and leave. */
       leave:
-	free (fmt);
+	(mqlib_free) (fmt);
 	if (rc != XDS_OK)
 		xds->buffer_len = buffer_len_backup;
 	return rc;

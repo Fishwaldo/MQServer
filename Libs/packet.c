@@ -84,13 +84,17 @@ myeng standeng[] = {
 };
 
 
+/* this setups our standard malloc/free routines */
+void *(*mqlib_malloc)(size_t) = malloc;
+void (*mqlib_free)(void *) = free;
+
 
 
 mqp *init_mqlib () {
 
 	mqp *mqplib;
 	
-	mqplib = malloc(sizeof(mqp));
+	mqplib = (mqlib_malloc)(sizeof(mqp));
 	mqplib->logger = NULL;
 	mqplib->callback = NULL;
 	mqplib->myengines = standeng;
@@ -99,7 +103,7 @@ mqp *init_mqlib () {
 
 
 void fini_mqlib (mqp *mqplib) {
-	free(mqplib);
+	(mqlib_free)(mqplib);
 }
 
 
@@ -157,7 +161,7 @@ pck_new_connection (mqp *mqplib, int fd, int type, int contype)
 {
 	mqpacket *mqpck;
 	
-	mqpck = malloc (sizeof (mqpacket));
+	mqpck = (mqlib_malloc) (sizeof (mqpacket));
 	mqpck->sock = fd;
 	mqpck->outmsg.MID = -1;
 	mqpck->nxtoutmid = 1;
@@ -174,13 +178,13 @@ pck_new_connection (mqp *mqplib, int fd, int type, int contype)
 	if (xds_init (&mqpck->xdsin, XDS_DECODE) != XDS_OK) {
 		if (mqplib->logger)
 			mqplib->logger ("xds init failed: %s", strerror (errno));
-		free (mqpck);
+		(mqlib_free) (mqpck);
 		return NULL;
 	}
 	if (xds_init (&mqpck->xdsout, XDS_ENCODE) != XDS_OK) {
 		if (mqplib->logger)
 			mqplib->logger ("xds init failed: %s", strerror (errno));
-		free (mqpck);
+		(mqlib_free) (mqpck);
 		return NULL;
 	}
 	i = 0;
@@ -196,7 +200,7 @@ pck_new_connection (mqp *mqplib, int fd, int type, int contype)
 					mqplib->logger ("xds_register failed for %s", mqplib->myengines[i].myname);
 				xds_destroy (mqpck->xdsout);
 				xds_destroy (mqpck->xdsin);
-				free (mqpck);
+				(mqlib_free) (mqpck);
 				mqpck = NULL;
 			}
 		}
@@ -223,17 +227,17 @@ pck_del_connection (mqp *mqplib, mqpacket * mqpck)
 {
 
 #if 0
-	if (mqpck->data) free (mqpck->data);
+	if (mqpck->data) (mqlib_free) (mqpck->data);
 #endif
 	xds_destroy (mqpck->xdsout);
 	xds_destroy (mqpck->xdsin);
 	mqbuffer_free(mqpck->inbuf);
 	mqbuffer_free(mqpck->outbuf);
 	if (mqpck->si.username) {
-		free(mqpck->si.username);
-		free(mqpck->si.password);
+		(mqlib_free)(mqpck->si.username);
+		(mqlib_free)(mqpck->si.password);
 	}
-	free (mqpck);
+	(mqlib_free) (mqpck);
 
 }
 
@@ -327,7 +331,7 @@ write_fd (mqp *mqplib, mqpacket * mqp)
 #if 0
 		if (i == mqp->outbuff->off) {
 			bzero(mqp->outbuffer, mqp->outbufferlen);
-			free (mqp->outbuffer);
+			(mqlib_free) (mqp->outbuffer);
 			mqp->outbufferlen = mqp->outoffset = 0;
 			mqp->pollopts &= ~POLLOUT;
 		} else if (i > 0) {

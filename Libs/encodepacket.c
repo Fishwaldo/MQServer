@@ -234,7 +234,7 @@ pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int
 					return NS_FAILURE;
 				}
 				
-/* 				free(mydata); */
+/* 				(mqlib_free)(mydata); */
 				break;
 			case STR_INT:
 				mydata = data + mystruct[i].offset;
@@ -278,7 +278,7 @@ pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int
 			mqplib->logger ("xds encode message failed %d.", rc);
 		return NS_FAILURE;
 	}
-	free(buffer);
+	(mqlib_free)(buffer);
 	return (pck_commit_data(mqplib, mqpck));
 
 }

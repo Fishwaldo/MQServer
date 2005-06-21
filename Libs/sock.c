@@ -413,8 +413,8 @@ pck_make_connection (char *hostname, char *username, char *password, long flags,
 		}
 	}
 	mqp = pck_new_connection (sockconfig.mqplib, s, ENG_TYPE_XML, PCK_IS_SERVER);
-	mqp->si.username = malloc(BUFSIZE);
-	mqp->si.password = malloc(BUFSIZE);	
+	mqp->si.username = (mqlib_malloc)(BUFSIZE);
+	mqp->si.password = (mqlib_malloc)(BUFSIZE);	
 
 	snprintf(mqp->si.username, BUFSIZE, "%s", username);
 	snprintf(mqp->si.password, BUFSIZE, "%s", password);

@@ -176,34 +176,34 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp)
 		case PCK_ACK:
 			break;
 		case PCK_ERROR:
-			free(mqp->inmsg.data.string);
+			(mqlib_free)(mqp->inmsg.data.string);
 			break;
 		case PCK_SRVCAP:
 		case PCK_CLNTCAP:
-			free(mqp->inmsg.data.srvcap.capstr);
+			(mqlib_free)(mqp->inmsg.data.srvcap.capstr);
 			break;
 		case PCK_AUTH:
-			free(mqp->inmsg.data.auth.username);
-			free(mqp->inmsg.data.auth.password);
+			(mqlib_free)(mqp->inmsg.data.auth.username);
+			(mqlib_free)(mqp->inmsg.data.auth.password);
 			break;
 		case PCK_SENDTOQUEUE:
-			free(mqp->inmsg.data.stream.queue);
-			free(mqp->inmsg.data.stream.topic);
-			free(mqp->inmsg.data.stream.data);
+			(mqlib_free)(mqp->inmsg.data.stream.queue);
+			(mqlib_free)(mqp->inmsg.data.stream.topic);
+			(mqlib_free)(mqp->inmsg.data.stream.data);
 			break;
 		case PCK_JOINQUEUE:
-			free(mqp->inmsg.data.joinqueue.queue);
-			free(mqp->inmsg.data.joinqueue.filter);
+			(mqlib_free)(mqp->inmsg.data.joinqueue.queue);
+			(mqlib_free)(mqp->inmsg.data.joinqueue.filter);
 			break;
 		case PCK_QUEUEINFO:
-			free(mqp->inmsg.data.joinqueue.queue);
-			free(mqp->inmsg.data.joinqueue.filter);
+			(mqlib_free)(mqp->inmsg.data.joinqueue.queue);
+			(mqlib_free)(mqp->inmsg.data.joinqueue.filter);
 			break;
 		case PCK_MSGFROMQUEUE:
-			free(mqp->inmsg.data.sendmsg.queue);
-			free(mqp->inmsg.data.sendmsg.topic);
-			free(mqp->inmsg.data.sendmsg.data);
-			free(mqp->inmsg.data.sendmsg.from);
+			(mqlib_free)(mqp->inmsg.data.sendmsg.queue);
+			(mqlib_free)(mqp->inmsg.data.sendmsg.topic);
+			(mqlib_free)(mqp->inmsg.data.sendmsg.data);
+			(mqlib_free)(mqp->inmsg.data.sendmsg.from);
 			break;
 		default:
 			if (mqplib->logger)
