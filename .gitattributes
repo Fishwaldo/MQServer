@@ -39,6 +39,8 @@ adns/transmit.c -text
 adns/tvarith.h -text
 adns/types.c -text
 /ax_maintainer_mode_auto_silent.m4 -text
+/ccdv.c -text
+/ccdv.m4 -text
 clients/Makefile.am -text
 clients/Makefile.in -text
 clients/hash.c -text
