@@ -60,6 +60,7 @@ confuse/lexer.l -text
 lib/include/buffer.h -text
 lib/include/defines.h -text
 lib/include/packet.h -text
+lib/include/simpleif.h -text
 lib/include/sock.h -text
 lib/include/xds.h -text
 lib/include/xds.h.in -text
