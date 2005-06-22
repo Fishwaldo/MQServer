@@ -1,10 +1,6 @@
-/* NeoStats - IRC Statistical Services 
-** Copyright (c) 1999-2004 Adam Rutter, Justin Hammond
-** http://www.neostats.net/
-**
-**  Portions Copyright (c) 2000-2001 ^Enigma^
-**
-**  Portions Copyright (c) 1999 Johnathan George net@lite.net
+/* MQServer - Abstract Message Processing Server
+** Copyright (c) 2005 Justin Hammond
+** http://www.mqserver.info/
 **
 **  This program is free software; you can redistribute it and/or modify
 **  it under the terms of the GNU General Public License as published by
@@ -21,8 +17,8 @@
 **  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 **  USA
 **
-** NeoStats CVS Identification
-** $Id: client.c 4 2004-04-28 12:02:07Z Fish $
+** MQServer CVS Identification
+** $Id$
 */
 
 #include <fcntl.h>
