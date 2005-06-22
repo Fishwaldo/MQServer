@@ -23,8 +23,8 @@
 ** $Id$
 */
 
-#ifndef DEFINES_H
-#define DEFINES_H
+#ifndef LIBMQ_H
+#define LIBMQ_H
 
 #define _GNU_SOURCE 1
 
@@ -94,17 +94,17 @@
 #define NS_FAILURE			-1
 
 typedef enum LOG_LEVEL {
-    LOG_CRITICAL=5,
-    LOG_WARNING,
-    LOG_NORMAL,
-    LOG_INFO,
+    MQLOG_CRITICAL=5,
+    MQLOG_WARNING,
+    MQLOG_NORMAL,
+    MQLOG_INFO,
 } LOG_LEVEL;
 
 typedef enum DEBUG_LEVEL {
-    DBG1=1,
-    DBG2,
-    DBG3,
-    DBG4,
+    MQDBG1=1,
+    MQDBG2,
+    MQDBG3,
+    MQDBG4,
 } DEBUG_LEVEL;
 
 /* logging defines */

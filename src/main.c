@@ -28,10 +28,10 @@
 #ifdef HAVE_BACKTRACE
 #include <execinfo.h>
 #endif
+#include "libmq.h"
 #include "defines.h"
 #include "signal.h"
 #include "log.h"
-#include "sock.h"
 #include "dns.h"
 #include "packet.h"
 #include "serversock.h"

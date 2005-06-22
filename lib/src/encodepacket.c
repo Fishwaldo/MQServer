@@ -28,9 +28,10 @@
 #include <arpa/inet.h>
 
 
-#include "defines.h"
+#include "libmq.h"
 #include "list.h"
 #include "packet.h"
+#include "simpleif.h"
 
 #define SRVCAP1 2
 #define SRVCAP2 3
@@ -55,15 +56,12 @@ int pck_prepare(mqp *mqplib, mqpacket *mqp, int type) {
 			rc = xds_encode (mqp->xdsout, "mqpheader", mqp);
 		}
 		if (rc != XDS_OK) {
-			if (mqplib->logger)
-				mqplib->logger ("xds encode header failed %d.", rc);
+			MQLOG(mqplib, MQLOG_WARNING, "xds encode header failed %d.", rc);
 			return NS_FAILURE;
 		}
 		return NS_SUCCESS;
 	} else {
-		if (mqplib->logger) {
-			mqplib->logger("Outbound Message Not clear %d", mqp->outmsg.MID);
-		}
+		MQLOG(mqplib, MQLOG_CRITICAL, "Outbound Message Not clear %d", mqp->outmsg.MID);
 		return NS_FAILURE;
 	}
 }
@@ -83,8 +81,7 @@ unsigned long pck_send_ack(mqp *mqplib, mqpacket *mqp, int MID) {
 	rc = xds_encode (mqp->xdsout, PCK_ACK_FMT, MID);
 
 	if (rc != XDS_OK) {
-		if (mqplib->logger)
-			mqplib->logger ("xds encode ack failed %d.", rc);
+		MQLOG(mqplib, MQLOG_WARNING, "xds encode ack failed %d.", rc);
 		return NS_FAILURE;
 	}
 	
@@ -107,8 +104,7 @@ unsigned long pck_send_srvcap(mqp *mqplib, mqpacket *mqp) {
 	rc = xds_encode (mqp->xdsout, PCK_SRVCAP_FMT, SRVCAP1, SRVCAP2, srvcap);
 
 	if (rc != XDS_OK) {
-		if (mqplib->logger)
-			mqplib->logger ("xds encode srvcap failed %d.", rc);
+		MQLOG(mqplib, MQLOG_WARNING, "xds encode srvcap failed %d.", rc);
 		return NS_FAILURE;
 	}
 	
@@ -131,8 +127,7 @@ unsigned long pck_send_clntcap(mqp *mqplib, mqpacket *mqp) {
 	rc = xds_encode (mqp->xdsout, PCK_CLNTCAP_FMT, CLNTCAP1, CLNTCAP2, clntcap);
 
 	if (rc != XDS_OK) {
-		if (mqplib->logger)
-			mqplib->logger ("xds encode clntcap failed %d.", rc);
+		MQLOG(mqplib, MQLOG_WARNING, "xds encode clntcap failed %d.", rc);
 		return NS_FAILURE;
 	}
 	
@@ -155,8 +150,7 @@ unsigned long pck_send_error(mqp *mqplib, mqpacket *mqp, char *fmt, ...) {
 	rc = xds_encode (mqp->xdsout, PCK_ERROR_FMT, log_buf);
 
 	if (rc != XDS_OK) {
-		if (mqplib->logger)
-			mqplib->logger ("xds encode error failed %d.", rc);
+		MQLOG(mqplib, MQLOG_WARNING, "xds encode error failed %d.", rc);
 		return NS_FAILURE;
 	}
 	
@@ -172,8 +166,7 @@ unsigned long pck_send_auth(mqp *mqplib, mqpacket *mqp, char *username, char *pa
 	rc = xds_encode (mqp->xdsout, PCK_AUTH_FMT, username, password);
 
 	if (rc != XDS_OK) {
-		if (mqplib->logger)
-			mqplib->logger ("xds encode auth failed %d.", rc);
+		MQLOG(mqplib, MQLOG_WARNING, "xds encode auth failed %d.", rc);
 		return NS_FAILURE;
 	}
 	
@@ -192,15 +185,13 @@ pck_commit_data (mqp * mqplib, mqpacket * mqpck)
 		rc = xds_encode (mqpck->xdsout, "xmlstop");
 
 		if (rc != XDS_OK) {
-			if (mqplib->logger)
-				mqplib->logger ("xds encode xmlstop failed %d.", rc);
+			MQLOG(mqplib, MQLOG_WARNING, "xds encode xmlstop failed %d.", rc);
 			return NS_FAILURE;
 		}
 	}
 	rc = xds_getbuffer (mqpck->xdsout, XDS_GIFT, (void **) &buffer, &buflen) ;
 	if (rc != XDS_OK) {
-		if (mqplib->logger)
-			mqplib->logger ("OutBuffer is Full. %d", rc);
+		MQLOG(mqplib, MQLOG_WARNING, "OutBuffer is Full. %d", rc);
 		return NS_FAILURE;
 	}
 	mqbuffer_add(mqpck->outbuf, buffer, buflen);
@@ -225,8 +216,7 @@ pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int
 				mydata = (mystruct[i].readcb)(data, &rc);
 				rc = xds_encode (mqpck->xdsout, "string", mydata);
 				if (rc != XDS_OK) {
-					if (mqplib->logger)
-						mqplib->logger ("xds encode header failed %d.", rc);
+					MQLOG(mqplib, MQLOG_WARNING, "xds encode pstring in message_struct failed %d.", rc);
 					return NS_FAILURE;
 				}
 				
@@ -237,22 +227,19 @@ pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int
 				myint = *(int *)mydata;
 				rc = xds_encode (mqpck->xdsout, "int32", myint);
 				if (rc != XDS_OK) {
-					if (mqplib->logger)
-						mqplib->logger ("xds encode header failed %d.", rc);
+					MQLOG(mqplib, MQLOG_WARNING, "xds encode int in message_struct failed %d.", rc);
 					return NS_FAILURE;
 				}
 				break;
 			case STR_STR:
 				mydata = data + mystruct[i].offset;
 				if (strlen(mydata) > mystruct[i].size) {
-					if (mqplib->logger) 
-						mqplib->logger ("String In Column %d is too long (%d > %d). Not Encoding", i, strlen(mydata), mystruct[i].size);
+					MQLOG(mqplib, MQLOG_WARNING,"String In Column %d is too long (%d > %d). Not Encoding", i, strlen(mydata), mystruct[i].size);
 					break;
 				}
 				rc = xds_encode (mqpck->xdsout, "string", (char *)mydata);
 				if (rc != XDS_OK) {
-					if (mqplib->logger)
-						mqplib->logger ("xds encode header failed %d.", rc);
+					MQLOG(mqplib, MQLOG_WARNING, "xds encode string in message_struct failed %d.", rc);
 					return NS_FAILURE;
 				}
 				break;
@@ -260,8 +247,7 @@ pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int
 	}
 	rc = xds_getbuffer (mqpck->xdsout, XDS_GIFT, (void **) &buffer, &bufferlen) ;
 	if (rc != XDS_OK) {
-		if (mqplib->logger)
-			mqplib->logger ("OutBuffer is Full. %d", rc);
+		MQLOG(mqplib,MQLOG_WARNING, "OutBuffer is Full. %d", rc);
 		return NS_FAILURE;
 	}
 	if (pck_prepare(mqplib, mqpck, PCK_SENDTOQUEUE) != NS_SUCCESS) {
@@ -270,8 +256,7 @@ pck_send_message_struct(mqp *mqplib, mqpacket *mqpck, structentry *mystruct, int
 	rc = xds_encode (mqpck->xdsout, PCK_SENDTOQUEUE_FMT, destination, bufferlen, topic, buffer, bufferlen);
 
 	if (rc != XDS_OK) {
-		if (mqplib->logger)
-			mqplib->logger ("xds encode message failed %d.", rc);
+		MQLOG(mqplib, MQLOG_WARNING, "xds encode message failed %d.", rc);
 		return NS_FAILURE;
 	}
 	(mqlib_free)(buffer);
@@ -289,8 +274,7 @@ pck_send_joinqueue(mqp *mqplib, mqpacket *mqpck, char *queue, int flags, char *f
 	rc = xds_encode (mqpck->xdsout, PCK_JOINQUEUE_FMT, queue, flags, filter);
 
 	if (rc != XDS_OK) {
-		if (mqplib->logger)
-			mqplib->logger ("xds encode joinqueue failed %d.", rc);
+		MQLOG(mqplib, MQLOG_WARNING, "xds encode joinqueue failed %d.", rc);
 		return NS_FAILURE;
 	}
 	
@@ -307,8 +291,7 @@ pck_send_queueinfo(mqp *mqplib, mqpacket *mqpck, char *queue, char *info, int fl
 	rc = xds_encode (mqpck->xdsout, PCK_QUEUEINFO_FMT, queue, flags, info);
 
 	if (rc != XDS_OK) {
-		if (mqplib->logger)
-			mqplib->logger ("xds encode queueinfo failed %d.", rc);
+		MQLOG(mqplib, MQLOG_WARNING, "xds encode queueinfo failed %d.", rc);
 		return NS_FAILURE;
 	}
 	
@@ -325,8 +308,7 @@ pck_send_queue_mes(mqp *mqplib, mqpacket *mqpck, char *queue, char *topic, void 
 	rc = xds_encode (mqpck->xdsout, PCK_MSGFROMQUEUE_FMT, queue, topic, data, len, messid, timestamp, from);
 
 	if (rc != XDS_OK) {
-		if (mqplib->logger)
-			mqplib->logger ("xds encode msgfromqueue failed %d.", rc);
+		MQLOG(mqplib, MQLOG_WARNING,"xds encode msgfromqueue failed %d.", rc);
 		return NS_FAILURE;
 	}
 	

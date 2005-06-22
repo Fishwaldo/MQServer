@@ -21,17 +21,17 @@
 ** $Id$
 */
 
+
+#include "libmq.h"
+#include "list.h"
+#include "packet.h"
+#include "simpleif.h"
+
 #include <fcntl.h>
 #include <sys/poll.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-
-#include "defines.h"
-#include "list.h"
-#include "packet.h"
-#include "sock.h"
-
 
 list_t *connections;
 
@@ -56,41 +56,41 @@ int pck_simple_callback(void *mqplib, mqpacket *mqp) {
 	switch (mqp->inmsg.MSGTYPE) {
 		case PCK_ACK:
 			if (MQS_S_FLAG_IS_GOTSRVCAP(mqp)) {
-				pck_logger("Got CLNTCAP ACK");
+				TRACE(mqplib, MQDBG2, "Got CLNTCAP ACK");
 				MQS_S_FLAG_SET_SENTAUTH(mqp);
 				pck_send_auth(mqplib, mqp, mqp->si.username, mqp->si.password);
 			} else if (MQS_S_FLAG_IS_SENTAUTH(mqp)) {
-				pck_logger("login Ack'd");
+				TRACE(mqplib, MQDBG2, "login Ack'd");
 				type = PCK_SMP_LOGINOK;
 				MQS_S_FLAG_SET_CONNECTOK(mqp);
 			}
 			break;
 		case PCK_SRVCAP:
-			pck_logger("Got ServerCap");
+			TRACE(mqplib, MQDBG2, "Got ServerCap");
 			MQS_S_FLAG_SET_GOTSRVCAP(mqp);
 			pck_send_clntcap(mqplib, mqp);
 			break;
 		case PCK_ERROR:
 			if (MQS_S_FLAG_IS_GOTSRVCAP(mqp)) {
-				pck_logger("Server rejected out clientcap for %s", mqp->inmsg.data.string);
-				type = PCK_SMP_CLNTCAPREJ;
+				MQLOG(mqplib, MQLOG_CRITICAL, "Server rejected out clientcap for %s", mqp->inmsg.data.string);
+/* 				type = PCK_SMP_CLNTCAPREJ; */
 				return NS_FAILURE;
 			} else if (MQS_S_FLAG_IS_SENTAUTH(mqp)) {
-				pck_logger("Server rejected out Login: %s", mqp->inmsg.data.string);
-				type = PCK_SMP_AUTHREJ;
+				MQLOG(mqplib, MQLOG_CRITICAL, "Server rejected out Login: %s", mqp->inmsg.data.string);
+/* 				type = PCK_SMP_AUTHREJ; */
 				return NS_FAILURE;
 			}
 			break;
 		case PCK_QUEUEINFO:
-			pck_logger("Got QueueInfo for %s: %d (%s)", mqp->inmsg.data.joinqueue.queue, mqp->inmsg.data.joinqueue.flags, mqp->inmsg.data.joinqueue.filter);
+			TRACE(mqplib, MQDBG2, "Got QueueInfo for %s: %ld (%s)", mqp->inmsg.data.joinqueue.queue, mqp->inmsg.data.joinqueue.flags, mqp->inmsg.data.joinqueue.filter);
 			type = PCK_SMP_QUEUEINFO;
 			break;
 		case PCK_MSGFROMQUEUE:
-			pck_logger("Got Message from Queue %s sent by %s on %d with topic %s with messid %d", mqp->inmsg.data.sendmsg.queue, mqp->inmsg.data.sendmsg.from, mqp->inmsg.data.sendmsg.timestamp, mqp->inmsg.data.sendmsg.topic, mqp->inmsg.data.sendmsg.messid);
+			TRACE(mqplib, MQDBG2, "Got Message from Queue %s sent by %s on %ld with topic %s with messid %ld", mqp->inmsg.data.sendmsg.queue, mqp->inmsg.data.sendmsg.from, mqp->inmsg.data.sendmsg.timestamp, mqp->inmsg.data.sendmsg.topic, mqp->inmsg.data.sendmsg.messid);
 			type = PCK_SMP_MSGFROMQUEUE;
 			break;
 		default:
-			pck_logger("Uknown msgtype recieved: %xd", mqp->inmsg.MSGTYPE);
+			MQLOG(mqplib, MQLOG_WARNING, "Uknown msgtype recieved: %xd", mqp->inmsg.MSGTYPE);
 	}			
 
 	if (type != 0) {
@@ -100,31 +100,19 @@ int pck_simple_callback(void *mqplib, mqpacket *mqp) {
 	return NS_SUCCESS;
 }
 
-void pck_logger(char *fmt,...) {
-	va_list ap;
-	char log_buf[BUFSIZE];
-	if (sockconfig.debug == 1) {
-		va_start(ap, fmt);
-		vsnprintf(log_buf, BUFSIZE, fmt, ap);
-		va_end(ap);
-//		printf("MQ: %s\n", log_buf);
-	}
-}
 
 int init_socket(actioncbfunc *actioncb) {
 	connections = list_create(-1);
 	sockconfig.listenfd = -1;
 	sockconfig.listport = -1;
 	sockconfig.mqplib = init_mqlib();
-	sockconfig.debug = 0;
 	sockconfig.actioncb = actioncb;
-	pck_set_logger(sockconfig.mqplib, pck_logger);		
 	pck_set_callback(sockconfig.mqplib, pck_simple_callback);
 	return NS_SUCCESS;
 }
 
 int debug_socket(int i) {
-	sockconfig.debug = i;
+	pck_set_dbglvl(sockconfig.mqplib, i);
 	return i;
 }
 
@@ -170,7 +158,6 @@ pck_before_poll (struct pollfd ufds[MAXCONNECTIONS])
 		}
 		node = list_next (connections, node);
 		if (count == (MAXCONNECTIONS -1)) {
-			pck_logger("count %d", count);
 			break;
 		}
 	}
@@ -281,7 +268,6 @@ pck_process ()
 	j = poll (ufds, i, 100);
 
 	if (j < 0) {
-		pck_logger("poll returned %d: %s", j, strerror(j));
 		return NS_FAILURE;
 	}
 	return pck_after_poll (ufds, j);
@@ -380,7 +366,7 @@ pck_make_connection (char *hostname, char *username, char *password, long flags,
 	if (inet_aton(hostname, &ipad) == 0) {
 	
 		if ((hp = gethostbyname(hostname)) == NULL) {
-			pck_logger("gethostbyname failed");
+			/* XXX Err vals */
 			return NS_FAILURE;
 		}
 		sa.sin_family = AF_INET;
@@ -393,7 +379,7 @@ pck_make_connection (char *hostname, char *username, char *password, long flags,
 	
 
 	if ((s = socket (AF_INET, SOCK_STREAM, 0)) < 0) {
-		printf ("Can't create socket\n");
+		/* XXX Err Vals */
 		return NS_FAILURE;
 	}
 	/* XXX bind */
@@ -404,7 +390,7 @@ pck_make_connection (char *hostname, char *username, char *password, long flags,
 	flags = connect (s, (struct sockaddr *) &sa, sizeof (sa));
 	if (flags < 0) {
 		if (errno != EINPROGRESS) {
-			printf ("Connect Failed %s\n", strerror(errno));
+			/* XXX Err Vals */
 			return NS_FAILURE;
 		}
 	}
@@ -423,7 +409,6 @@ pck_make_connection (char *hostname, char *username, char *password, long flags,
 
 	mqp->pollopts |= POLLIN;
 	
-	pck_logger("OutGoing Connection on fd %d", s);
 	return s;
 }
 
@@ -496,12 +481,12 @@ pck_decode_message(mq_data_senddata *sd, structentry *mystruct, int cols, void *
 	
 	xdstmp = pck_init_engines(sockconfig.mqplib, ENG_TYPE_XML, XDS_DECODE);
 	if (xdstmp == NULL)  {
-		pck_logger("pck_decode_message xds init failed");
+/* 		pck_logger("pck_decode_message xds init failed"); */
 		return NS_FAILURE;
 	}
 
 	if (xds_setbuffer (xdstmp, XDS_LOAN, sd->data, sd->len) != XDS_OK) {
-		pck_logger("pck_decode_message XDS setbuffer Failed");
+/* 		pck_logger("pck_decode_message XDS setbuffer Failed"); */
 		xds_destroy(xdstmp);
 	        return NS_FAILURE;
 	}
@@ -514,7 +499,7 @@ pck_decode_message(mq_data_senddata *sd, structentry *mystruct, int cols, void *
 					destptr = (void *) target + mystruct[i].offset;
 					*(char **)destptr = strndup(string, strlen(string));
 				} else {
-					pck_logger("pck_decode_message, STR_PSTR failed\n");
+/* 					pck_logger("pck_decode_message, STR_PSTR failed\n"); */
 				}			
 				free(string);
 				break;
@@ -524,7 +509,7 @@ pck_decode_message(mq_data_senddata *sd, structentry *mystruct, int cols, void *
 					destptr = (void *) target + mystruct[i].offset;
 					*((int *)destptr) = myint;
 				} else {
-					pck_logger("pck_decode_message, STR_INT failed\n");
+/*					pck_logger("pck_decode_message, STR_INT failed\n"); */
 				}			
 				break;
 			case STR_STR:
@@ -533,12 +518,13 @@ pck_decode_message(mq_data_senddata *sd, structentry *mystruct, int cols, void *
 					destptr = (void *) target + mystruct[i].offset;
 					strncpy((char *)destptr, string, mystruct[i].size);			
 				} else {
-					pck_logger("pck_decode_message, STR_STR failed\n");
+/* 					pck_logger("pck_decode_message, STR_STR failed\n"); */
 				}			
 				free(string);
 				break;
 			default:
-				pck_logger( "pck_decode_message, unknown type");
+/* 				pck_logger( "pck_decode_message, unknown type"); */
+				break;
 		}
 	}
 	xds_destroy(xdstmp);

@@ -58,11 +58,9 @@ confuse/lexer.l -text
 /depcomp -text
 /install-sh -text
 lib/include/buffer.h -text
-lib/include/defines.h -text
 lib/include/libmq.h -text
 lib/include/packet.h -text
 lib/include/simpleif.h -text
-lib/include/sock.h -text
 lib/include/xds.h -text
 lib/include/xds.h.in -text
 lib/include/xds_engine_xdr_mqs.h -text
@@ -73,7 +71,7 @@ lib/src/buffer.c -text
 lib/src/decodepacket.c -text
 lib/src/encodepacket.c -text
 lib/src/packet.c -text
-lib/src/sock.c -text
+lib/src/simpleif.c -text
 lib/src/xds.c -text
 lib/src/xds_engine_xdr.c -text
 lib/src/xds_engine_xdr_mqs.c -text

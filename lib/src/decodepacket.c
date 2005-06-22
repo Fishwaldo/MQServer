@@ -30,7 +30,7 @@
 /* needed for crc32 function */
 #include <zlib.h>
 
-#include "defines.h"
+#include "libmq.h"
 #include "list.h"
 #include "packet.h"
 #include "xds.h"
@@ -48,8 +48,7 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp)
 	printf("%d\n", mqp->inbuf->off);
 #endif
 	if (xds_setbuffer (mqp->xdsin, XDS_LOAN, mqp->inbuf->buffer, mqp->inbuf->off) != XDS_OK) {
-		if (mqplib->logger)
-			mqplib->logger ("XDS setbuffer Failed");
+		MQLOG(mqplib, MQLOG_WARNING, "XDS setbuffer Failed");
 		/* XXX drop client ? */
 		return NS_FAILURE;
 	}
@@ -72,26 +71,22 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp)
 			usedbuf = xds_get_usedbuffer (mqp->xdsin);
 			break;
 		case XDS_ERR_UNDERFLOW:
-			if (mqplib->logger)
-				mqplib->logger ("XDS Decode of Header Failed. Buffer Underflow");
+			MQLOG(mqplib, MQLOG_INFO, "XDS Decode of Header Failed. Buffer Underflow");
 			/* don't consume any buffer */
 			return -2;
 		default:
 #ifdef PACKDEBUG
-			printf("%s\n", mqp->inbuf->buffer);
+			TRACE(mqplib, MQDBG4, "PackDebug: %s", mqp->inbuf->buffer);
 #endif
-			if (mqplib->logger)
-				mqplib->logger ("XDS Decode of Header Failed: %d", rc);
+			MQLOG(mqplib, MQLOG_WARNING,"XDS Decode of Header Failed: %d", rc);
 			print_decode(mqp, 1);
 			/* drop client */
 			return NS_FAILURE;
 	}
-	if (mqplib->logger)
-		mqplib->logger ("Got Packet Decode: mid %d msgtype %d Version %d flags %d ", mqp->inmsg.MID, mqp->inmsg.MSGTYPE, mqp->inmsg.VERSION, mqp->inmsg.flags);
+	TRACE(mqplib, MQDBG1, "Got Packet Decode: mid %d msgtype %d Version %d flags %d ", mqp->inmsg.MID, mqp->inmsg.MSGTYPE, mqp->inmsg.VERSION, mqp->inmsg.flags);
 		/* check the version number */
 	if (mqp->inmsg.VERSION != 1) {
-		if (mqplib->logger)
-			mqplib->logger ("Invalid Protocol Version recieved");
+		MQLOG(mqplib, MQLOG_WARNING, "Invalid Protocol Version recieved");
 		/* XXX drop client ? */
 		return NS_FAILURE;
 	}
@@ -125,8 +120,7 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp)
 			rc = xds_decode(mqp->xdsin, PCK_MSGFROMQUEUE_FMT, &mqp->inmsg.data.sendmsg.queue, &mqp->inmsg.data.sendmsg.topic, &mqp->inmsg.data.sendmsg.data, &mqp->inmsg.data.sendmsg.len, &mqp->inmsg.data.sendmsg.messid, &mqp->inmsg.data.sendmsg.timestamp, &mqp->inmsg.data.sendmsg.from);
 			break;
 		default:
-			if (mqplib->logger)
-				mqplib->logger ("Invalid MsgType Recieved");
+			MQLOG(mqplib, MQLOG_WARNING,"Invalid MsgType Recieved");
 			/* XXX drop client */
 			return NS_FAILURE;
 	}
@@ -135,13 +129,10 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp)
 			usedbuf = xds_get_usedbuffer (mqp->xdsin);
 			break;
 		case XDS_ERR_UNDERFLOW:
-			if (mqplib->logger)
-				mqplib->logger ("XDS Decode of Data Failed. Buffer Underflow");
 			/* don't consume any buffer */
 			return -2;
 		default:
-			if (mqplib->logger)
-				mqplib->logger ("XDS Decode of Data Failed: %d", rc);
+			MQLOG(mqplib, MQLOG_WARNING, "XDS Decode of Data Failed: %d", rc);
 			/* drop client */
 			print_decode(mqp, 1);
 			return NS_FAILURE;
@@ -153,13 +144,11 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp)
 				usedbuf = xds_get_usedbuffer (mqp->xdsin);
 				break;
 			case XDS_ERR_UNDERFLOW:
-				if (mqplib->logger)
-					mqplib->logger ("XDS Decode of Footer Failed. Buffer Underflow");
+				MQLOG(mqplib, MQLOG_INFO, "XDS Decode of Footer Failed. Buffer Underflow");
 				/* don't consume any buffer */
 				return -2;
 			default:
-				if (mqplib->logger)
-					mqplib->logger ("XDS Decode of Footer Failed: %d", rc);
+				MQLOG(mqplib, MQLOG_WARNING, "XDS Decode of Footer Failed: %d", rc);
 				/* drop client */
 				print_decode(mqp, 1);
 				return NS_FAILURE;
@@ -202,8 +191,7 @@ pck_parse_packet (mqp *mqplib, mqpacket * mqp)
 			(mqlib_free)(mqp->inmsg.data.sendmsg.from);
 			break;
 		default:
-			if (mqplib->logger)
-				mqplib->logger ("Invalid MsgType Recieved");
+			MQLOG(mqplib, MQLOG_WARNING, "Invalid MsgType Recieved");
 	}
 	/* finished processing the message. grab what buffer we consumed and return */
 	return usedbuf;

@@ -26,6 +26,7 @@
 #ifndef SERVERSOCK_H
 #define SERVERSOCK_H
 
+#include "libmq.h"
 #include "defines.h"
 #include "event.h"
 #include "list.h"

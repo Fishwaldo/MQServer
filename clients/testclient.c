@@ -36,8 +36,9 @@
 #include <ncurses.h>
 #include <term.h>
                      
-#include "defines.h"
+#include "libmq.h"
 #include "packet.h"
+#include "simpleif.h"
 #include "log.h"
 
 void pck_logger(char *fmt,...);

@@ -207,7 +207,8 @@ MQS_sock_start ()
 	mqssetup.connections = list_create(-1);
 
 	mqssetup.mqplib = init_mqlib();
-	pck_set_logger(mqssetup.mqplib, MQS_Logger);
+/* 	pck_set_logger(mqssetup.mqplib, MQS_Logger); */
+         pck_set_dbglvl(mqssetup.mqplib, 0);
 	pck_set_callback(mqssetup.mqplib, MQS_Callback);
 
 	event_init();

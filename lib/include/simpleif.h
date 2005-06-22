@@ -26,6 +26,8 @@
 #ifndef SOCK_H
 #define SOCK_H
 
+#include "libmq.h"
+
 #define MQS_S_FLAG_GOTSRVCAP 	0x01
 #define MQS_S_FLAG_SENTAUTH	0x02
 #define MQS_S_FLAG_CONNECTOK	0x04

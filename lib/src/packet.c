@@ -27,7 +27,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#include "defines.h"
+#include "libmq.h"
 #include "list.h"
 #include "packet.h"
 #include "xds.h"
@@ -84,8 +84,39 @@ myeng standeng[] = {
 void *(*mqlib_malloc)(size_t) = malloc;
 void (*mqlib_free)(void *) = free;
 
+#ifdef DEBUG
+void dotrace(mqp *mqplib, DEBUG_LEVEL level, char *fname, int lno, char *fnct, char *fmt, ...) {
+	va_list ap;
+	char logbuf[BUFSIZE];
+	if (level >= mqplib->debug) {
+		va_start(ap, fmt);
+		vsnprintf(logbuf, BUFSIZE, fmt, ap);
+		va_end(ap);
+		if (!mqplib->logger) {
+			fprintf(stderr, "TRACE(%d) %s:%d(%s): %s\n", level, fname, lno, fnct, logbuf);
+		} else {
+			mqplib->logger(level, "TRACE(%d) %s:%d(%s): %s\n", level, fname, lno, fnct, logbuf);
+		}
+	}	
+}
+#endif
+
+void MQLOG(mqp *mqplib, LOG_LEVEL level, char *fmt, ...) {
+	va_list ap;
+	char logbuf[BUFSIZE];
+	if (level >= mqplib->loglvl) {
+		va_start(ap, fmt);
+		vsnprintf(logbuf, BUFSIZE, fmt, ap);
+		va_end(ap);
+		if (!mqplib->logger) {
+			fprintf(stdout, "%d: %s\n", level, logbuf);
+		} else {
+			mqplib->logger(level, logbuf);
+		}
+	}	
 
 
+}
 mqp *init_mqlib () {
 
 	mqp *mqplib;
@@ -94,6 +125,8 @@ mqp *init_mqlib () {
 	mqplib->logger = NULL;
 	mqplib->callback = NULL;
 	mqplib->myengines = standeng;
+	mqplib->loglvl = 5;
+	mqplib->debug = 5;
 	return mqplib;
 }
 
@@ -124,14 +157,19 @@ void pck_set_data(mqpacket *mqp, void *data) {
 	mqp->cbarg = data;
 }
 
+void pck_set_loglvl(mqp *mqplib, LOG_LEVEL level) {
+	mqplib->loglvl = level;
+}
+void pck_set_dbglvl(mqp *mqplib, DEBUG_LEVEL level) {
+	mqplib->debug = level;
+}
 
 xds_t * 
 pck_init_engines (mqp *mqplib, int type, int direction) {
 	int i, rc = 0;
 	xds_t *xds;
 	if (xds_init (&xds, direction) != XDS_OK) {
-		if (mqplib->logger)
-			mqplib->logger ("xds init failed: %s", strerror (errno));
+		MQLOG(mqplib, MQLOG_CRITICAL, "xds init failed: %s", strerror (errno));
 		return NULL;
 	}
 	i = 0;
@@ -141,8 +179,7 @@ pck_init_engines (mqp *mqplib, int type, int direction) {
 				rc = xds_register (xds, mqplib->myengines[i].myname, mqplib->myengines[i].ptr, NULL);
 			}
 			if (rc != XDS_OK) {
-				if (mqplib->logger)
-					mqplib->logger ("xds_register failed for %s", mqplib->myengines[i].myname);
+				MQLOG(mqplib, MQLOG_WARNING, "xds_register failed for %s", mqplib->myengines[i].myname);
 				xds_destroy (xds);
 				return NULL;
 			}
@@ -211,8 +248,8 @@ pck_new_connection (mqp *mqplib, int fd, int type, int contype)
 		case PCK_IS_SERVER:
 			break;
 		default:
-			if (mqplib->logger) 
-				mqplib->logger ("pck_new_connection invalid type %d", contype);
+
+			MQLOG(mqplib, MQLOG_WARNING,"pck_new_connection invalid type %d", contype);
 			break;
 	}
 	return mqpck;
@@ -248,8 +285,7 @@ read_fd (mqp *mqplib, mqpacket *mqp)
 	i = read (mqp->sock, buf, BUFSIZE);
 	if ((i < 0) && (i != EAGAIN)) {
 		/* error */
-		if (mqplib->logger)
-			mqplib->logger("Failed to Read fd %d(%d): %s", mqp->sock,i, strerror(errno));
+		MQLOG(mqplib, MQLOG_WARNING, "Failed to Read fd %d(%d): %s", mqp->sock,i, strerror(errno));
 		close_fd (mqplib, mqp);
 		/* XXX close and clean up */
 		return NS_FAILURE;
@@ -273,18 +309,14 @@ read_fd (mqp *mqplib, mqpacket *mqp)
 			return NS_SUCCESS;
 		}
 	}
-	if (mqplib->logger) {
-		mqplib->logger ("processed %d bytes %d left", i, mqp->inbuf->off);
-	}
+	TRACE(mqplib, MQDBG4, "processed %d bytes %d left", i, mqp->inbuf->off);
 	return NS_SUCCESS;
 }
 
 int
 close_fd (mqp *mqplib, mqpacket * mqp)
 {
-	if (mqplib->logger) {
-		mqplib->logger ("Closing %d fd", mqp->sock);
-	}
+	TRACE(mqplib, MQDBG2, "Closing %d fd", mqp->sock);
 	close (mqp->sock);
 	pck_del_connection (mqplib, mqp);
 
@@ -310,8 +342,7 @@ write_fd (mqp *mqplib, mqpacket * mqp)
 				return NS_SUCCESS;
 			}
 			/* something went wrong sending the data */
-			if (mqplib->logger)
-				mqplib->logger ("Error Sending on fd %d(%d): %s", mqp->sock, i, strerror(errno));
+			MQLOG(mqplib, MQLOG_WARNING, "Error Sending on fd %d(%d): %s", mqp->sock, i, strerror(errno));
 			close_fd (mqplib, mqp);
 			return NS_FAILURE;
 		} else if (i == 0) {
@@ -341,8 +372,7 @@ write_fd (mqp *mqplib, mqpacket * mqp)
 #endif
 	} else {
 		/* somethign went wrong encoding the data */
-		if (mqplib->logger)
-			mqplib->logger ("No Data to Send?");
+		TRACE(mqplib, MQDBG2, "No Data to Send?");
 #if 0
 		close_fd (mqplib, mqp);
 		return NS_FAILURE;

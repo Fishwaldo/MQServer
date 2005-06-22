@@ -27,9 +27,7 @@
 #define DEFINES_H
 
 #include <stddef.h>
-#define _GNU_SOURCE
 #include <stdio.h>
-#undef _GNU_SOURCE
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>

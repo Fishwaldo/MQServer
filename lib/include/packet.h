@@ -26,7 +26,7 @@
 #ifndef PACKET_H
 #define PACKET_H
 
-#include "defines.h"
+#include "libmq.h"
 #include "xds.h"
 #include "xds_engine_xdr_mqs.h"
 #include "buffer.h"
@@ -74,9 +74,9 @@
 #define PCK_CLNTCAP_FMT		"int32 int32 string"
 #define PCK_AUTH_FMT		"string string"
 
-#define PCK_JOINQUEUE_FMT	"string int32 string"
+#define PCK_JOINQUEUE_FMT		"string int32 string"
 #define PCK_SENDTOQUEUE_FMT	"string int32 string octet"
-#define PCK_QUEUEINFO_FMT	"string int32 string"
+#define PCK_QUEUEINFO_FMT		"string int32 string"
 #define PCK_MSGFROMQUEUE_FMT	"string string octet int32 int32 string"
 
 /* packet flags, not message flags */
@@ -155,7 +155,7 @@ typedef struct mqpacket {
 	xds_t *xdsout;
 } mqpacket;	
 
-typedef void (logfunc)(char *fmt, ...)  __attribute__((format(printf,1,2))); /* 3=format 4=params */
+typedef void (logfunc)(int level, char *fmt, ...)  __attribute__((format(printf,2,3))); /* 3=format 4=params */
 typedef int (connectauthfunc)(void *, mqpacket *);
 typedef int (callbackfunc)(void *, mqpacket *);
 
@@ -173,13 +173,9 @@ typedef struct mqp {
 	connectauthfunc *connectauth;
 	myeng *myengines;
 	callbackfunc *callback;
+	int debug;
+	int loglvl;
 } mqp; 	 
-
-/* defines for the structentry type fields */
-#define STR_PSTR	1
-#define STR_STR		2
-#define STR_INT		3
-
 
 typedef struct {
 	int type;
@@ -194,20 +190,15 @@ typedef struct {
 void *(*mqlib_malloc)(size_t);
 void (*mqlib_free)(void *);
 
-
-
-
 extern int encode_mqs_header (xds_t * xds, void *engine_context, void *buffer, size_t buffer_size, size_t * used_buffer_size, va_list * args);
 extern int decode_mqs_header (xds_t * xds, void *engine_context, void *buffer, size_t buffer_size, size_t * used_buffer_size, va_list * args);
-
-
-
-
 void pck_set_logger(mqp *, logfunc *logger);
 void pck_set_callback(mqp *, callbackfunc *);
 void pck_set_authcallback(mqp *, connectauthfunc *);
 void pck_set_data(mqpacket *, void *);
+void pck_set_dbglvl(mqp *, DEBUG_LEVEL);
 mqp *init_mqlib ();
+void fini_mqlib(mqp *mqplib);
 int read_fd (mqp *mqplib, mqpacket *mqp);
 int close_fd (mqp *mqplib, mqpacket * mqp);
 int write_fd (mqp *mqplib, mqpacket * mqp);
@@ -225,42 +216,14 @@ unsigned long pck_send_queueinfo(mqp *mqplib, mqpacket *mqpck, char *queue, char
 unsigned long pck_send_queue_mes(mqp *mqplib, mqpacket *mqpck, char *queue, char *topic, void *data, size_t len, unsigned long messid, long timestamp, char *from);
 xds_t * pck_init_engines (mqp *mqplib, int type, int direction);
 
-/* this is the standalone un-threadsafe interface */
-typedef int (actioncbfunc)(int, void *);
-int init_socket(actioncbfunc *);
-int debug_socket(int i);
-int enable_server(int port);
-int pck_process ();
-int pck_make_connection (char *hostname, char *, char *, long , void *cbarg, actioncbfunc *);
-unsigned long pck_simple_send_message_struct(int conid, structentry *mystruct, int cols, void *data, char *destination, char *topic);
-unsigned long pck_simple_joinqueue(int conid, char *queue, int flags, char *filter);
-mq_data_joinqueue *pck_get_queueinfo(int conid);
-mq_data_senddata *pck_get_msgfromqueue(int conid);
-int pck_decode_message(mq_data_senddata *sd, structentry *mystruct, int cols, void *target);
+void dotrace(mqp *mqplib, DEBUG_LEVEL level, char *fname, int lno, char *fnct, char *fmt, ...) __attribute__((format(printf,6,7)));
+void MQLOG(mqp *mqplib, LOG_LEVEL level, char *fmt, ...)  __attribute__((format(printf,3,4)));
+
+
 
 /* these are error defines */
 #define PCK_ERR_BUFFULL		1
 #define PCK_ERR_CRC		2
-
-
-
-
-
-/* these are the simple callback types */
-#define PCK_SMP_LOGINOK		1
-#define PCK_SMP_QUEUEINFO	2
-#define PCK_SMP_MSGFROMQUEUE	3
-
-
-#define PCK_SMP_CLNTCAPREJ	-1
-#define PCK_SMP_AUTHREJ		-2
-
-
-
-
-
-
-
 
 
 

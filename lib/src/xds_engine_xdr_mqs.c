@@ -22,7 +22,7 @@
 */
 #include <stdio.h>
 #include <string.h>
-#include "defines.h"
+#include "libmq.h"
 #include "packet.h"
 #include "xds.h"
 
