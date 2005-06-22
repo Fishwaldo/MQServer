@@ -59,6 +59,7 @@ confuse/lexer.l -text
 /install-sh -text
 lib/include/buffer.h -text
 lib/include/defines.h -text
+lib/include/libmq.h -text
 lib/include/packet.h -text
 lib/include/simpleif.h -text
 lib/include/sock.h -text
