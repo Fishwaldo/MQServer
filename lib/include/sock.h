@@ -41,4 +41,38 @@
 #define MQS_S_FLAG_IS_CONNECTOK(x) (x->flags & MQS_S_FLAG_CONNECTOK)
 
 
+/* these are the simple callback types */
+#define PCK_SMP_LOGINOK		1
+#define PCK_SMP_QUEUEINFO	2
+#define PCK_SMP_MSGFROMQUEUE	3
+
+
+#define PCK_SMP_CLNTCAPREJ	-1
+#define PCK_SMP_AUTHREJ		-2
+
+
+/* defines for the structentry type fields */
+#define STR_PSTR	1
+#define STR_STR		2
+#define STR_INT		3
+
+
+
+
+
+
+/* this is the standalone un-threadsafe interface */
+typedef int (actioncbfunc)(int, void *);
+int init_socket(actioncbfunc *);
+int debug_socket(int i);
+int enable_server(int port);
+int pck_process ();
+int pck_make_connection (char *hostname, char *, char *, long , void *cbarg, actioncbfunc *);
+unsigned long pck_simple_send_message_struct(int conid, structentry *mystruct, int cols, void *data, char *destination, char *topic);
+unsigned long pck_simple_joinqueue(int conid, char *queue, int flags, char *filter);
+mq_data_joinqueue *pck_get_queueinfo(int conid);
+mq_data_senddata *pck_get_msgfromqueue(int conid);
+int pck_decode_message(mq_data_senddata *sd, structentry *mystruct, int cols, void *target);
+
+
 #endif
